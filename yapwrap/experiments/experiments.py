@@ -35,7 +35,8 @@ class Experiment(object):
         criterion.__str__ = criterion.__class__.__name__.split('(')[0]
         self.experiment_name = '{}_{}'.format(model.name, dataloader.name)
         self.experiment_dir = self._experiment_dir(self.experiment_name)
-        self.saver = yapwrap.utils.Saver(self.experiment_name, self.experiment_dir, **kwargs)
+        self.saver = yapwrap.utils.Saver(self.experiment_name, self.experiment_dir)
+        self.saver.experiment_config(**kwargs)
         self.logger = yapwrap.utils.Logger(self.experiment_name, self.experiment_dir, **kwargs)
 
         if not isinstance(model, nn.Module):
@@ -70,6 +71,7 @@ class Experiment(object):
 
     def save(self):
         self.saver.save()
+
     def _step(self):
         raise NotImplementedError
 
@@ -96,7 +98,6 @@ class ImageClassification(Experiment):
     def __init__(self, **kwargs):
         super(ImageClassification, self).__init__(**kwargs)
         self.saver = yapwrap.utils.BestMetricSaver('validation', 'RunningAccuracy', self.experiment_name, self.experiment_dir)
-        self.lr_scheduler = kwargs['lr_scheduler']
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)
@@ -118,7 +119,6 @@ class ImageClassification(Experiment):
     def _epoch(self, data_iter):
         self.evaluator.metric_set = data_iter.metric_set
         tbar = tqdm(data_iter)
-        self.lr_scheduler.step()
         for input, target in tbar:
             if self.on_cuda:
                 input = input.cuda()
@@ -134,7 +134,7 @@ class ImageClassification(Experiment):
             self.saver.epoch += 1
             self.saver.model_state_dict = self._get_model_state()
             self.saver.optimizer_state_dict = self.optimizer.state_dict()
-            self.saver.save()
+            self.saver.save(metric_evaluator = self.evaluator)
 
     def train_and_validate(self, num_epochs):
         train_iter = self.dataloader.train_iter()

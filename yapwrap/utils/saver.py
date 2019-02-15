@@ -20,10 +20,9 @@ import json
 import os
 
 class Saver(object):
-    def __init__(self, experiment_name, experiment_dir, **kwargs):
+    def __init__(self, experiment_name, experiment_dir):
         self.experiment_name = experiment_name
         self.experiment_dir = experiment_dir
-        self.experiment_config(kwargs)
 
         self.loss = None
         self.step = 0
@@ -41,27 +40,18 @@ class Saver(object):
                  'optimizer_state_dict':self.optimizer_state_dict}
         torch.save(state, filename)
 
-    def experiment_config(self, kwargs):
+    def experiment_config(self, **kwargs):
         config = {}
         for k, v in kwargs.items():
-            v = self.filters_and_formatters(v)
             config.update({k:str(v)})
         config.update({'_Experiment_Name_':self.experiment_name})
         filename = os.path.join(self.experiment_dir, 'experiment_config.json')
         with open(filename, 'w') as f:
             json.dump(config, f, sort_keys=True, indent=4)
 
-    @staticmethod
-    def filters_and_formatters(x):
-        if x.__class__.__module__ == 'torch.optim.lr_scheduler':
-            x = x.__dict__
-            x.pop('optimizer')
-            x.pop('is_better')
-        return x
-
 class BestMetricSaver(Saver):
     def __init__(self, metric_set, metric_name, experiment_name, experiment_dir, criterion=np.greater_equal, **kwargs):
-        super(BestMetricSaver, self).__init__(experiment_name, experiment_dir, **kwargs)
+        super(BestMetricSaver, self).__init__(experiment_name, experiment_dir)
         self.metric_set = metric_set
         self.metric_name = metric_name
         self.metric = None

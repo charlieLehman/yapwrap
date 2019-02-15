@@ -7,20 +7,24 @@ from yapwrap.models import TinyResNet18, ComplementConstraint
 from torchvision.models import resnet18
 import inspect
 
+# Training Data
 dataloader = CIFAR10()
+
+# Models to Compare
 trn = TinyResNet18(dataloader.num_classes)
 trn_cc = ComplementConstraint(trn)
 models = [trn, trn_cc]
 
+# Evaluation Criterion
 evaluator = ImageClassificationEvaluator(dataloader.num_classes)
 
+# Run both experiments
 lr = 0.1
 num_epochs = 300
 for model in models:
-    optimizer = torch.optim.SGD(model.parameters(), lr = lr , momentum=0.9, weight_decay=1e-4, nesterov=False)
-    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_epochs)
+    optimizer = torch.optim.Adam(model.parameters())
     criterion=nn.CrossEntropyLoss()
-    kwargs = {'model':model, 'lr':lr, 'optimizer':optimizer, 'lr_scheduler':lr_scheduler, 'criterion':criterion, 'dataloader':dataloader, 'evaluator':evaluator}
+    kwargs = {'model':model, 'lr':lr, 'optimizer':optimizer, 'criterion':criterion, 'dataloader':dataloader, 'evaluator':evaluator}
     exp = ImageClassification(**kwargs).cuda()
     exp.train_and_validate(300)
 # exp.test()
