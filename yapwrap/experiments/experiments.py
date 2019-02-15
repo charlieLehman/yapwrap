@@ -13,12 +13,14 @@
 # limitations under the License.
 # ==============================================================================
 
-import pytorchlab as pl
+import yapwrap
 from torchvision.models import ResNet
 import torch
 from torch import nn
-from pytorchlab.models import TinyResNet18 as _TinyResNet18
 from collections import OrderedDict
+import os
+import glob
+from tqdm import tqdm
 
 class Experiment(object):
     def __init__(self, **kwargs):
@@ -31,11 +33,11 @@ class Experiment(object):
         optimizer = kwargs['optimizer']
         lr_scheduler = kwargs['lr_scheduler']
         criterion = kwargs['criterion']
-        criterion.__str__ = criterion.__class__.__name__
+        criterion.__str__ = criterion.__class__.__name__.split('(')[0]
         self.experiment_name = '{}_{}'.format(model.name, dataloader.name)
-
-        self.saver = pl.utils.Saver(self.experiment_name, **kwargs)
-        self.logger = pl.utils.Logger(self.experiment_name, **kwargs)
+        self.experiment_dir = self._experiment_dir(self.experiment_name)
+        self.saver = yapwrap.utils.Saver(self.experiment_name, self.experiment_dir, **kwargs)
+        self.logger = yapwrap.utils.Logger(self.experiment_name, self.experiment_dir, **kwargs)
 
         if not isinstance(model, nn.Module):
             raise TypeError('{} is not a valid type nn.Module'.format(type(model).__name__))
@@ -50,13 +52,23 @@ class Experiment(object):
         if not isinstance(criterion, nn.modules.loss._Loss):
             raise TypeError('{} is not a valid criterion'.format(type(criterion).__name__))
         self.criterion = criterion
-        if not isinstance(evaluator, pl.utils.Evaluator):
+        if not isinstance(evaluator, yapwrap.utils.Evaluator):
             raise TypeError('{} is not a valid pytorchlab.Evaluator'.format(type(evaluator).__name__))
         self.evaluator = evaluator
-        if not isinstance(dataloader, pl.dataloaders.Dataloader):
+        if not isinstance(dataloader, yapwrap.dataloaders.Dataloader):
             raise TypeError('{} is not a valid type pytorchlab.Dataloader'.format(type(dataloader).__name__))
         self.dataloader = dataloader
         self.on_cuda = False
+
+    @staticmethod
+    def _experiment_dir(experiment_name):
+        directory = os.path.join('run', experiment_name)
+        runs = sorted(glob.glob(os.path.join(directory, 'experiment_*')))
+        run_id = int(runs[-1].split('_')[-1]) + 1 if runs else 0
+        exp_dir = os.path.join(directory, 'experiment_{:04d}'.format(run_id))
+        if not os.path.exists(exp_dir):
+            os.makedirs(exp_dir)
+        return exp_dir
 
     def save(self):
         self.saver.save()
@@ -85,28 +97,34 @@ class ImageClassification(Experiment):
     """
     def __init__(self, **kwargs):
         super(ImageClassification, self).__init__(**kwargs)
-        self.saver = pl.utils.BestMetricSaver('validation', 'RunningAccuracy', self.experiment_name)
+        self.saver = yapwrap.utils.BestMetricSaver('validation', 'RunningAccuracy', self.experiment_name, self.experiment_dir)
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)
         loss = self.criterion(output, target)
-        self.evaluator.update(output, target)
-        self.saver.loss = loss.item()
+        eval_update = {'metrics':(output, target),
+                        'loss':loss.item(),
+                        'criterion':str(self.criterion)}
+        self.evaluator.update(**eval_update)
         if self.model.training:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
             self.saver.step += 1
-        print(self.evaluator.state[self.evaluator.metric_set])
+            self.evaluator.step += 1
+            self.saver.loss = loss.item()
+            self.logger.summarize_scalars(self.evaluator)
         return output
 
     def _epoch(self, data_iter):
         self.evaluator.metric_set = data_iter.metric_set
-        for input, target in data_iter:
+        tbar = tqdm(data_iter)
+        for input, target in tbar:
             if self.on_cuda:
                 input = input.cuda()
                 target = target.cuda()
             output = self._step(input, target)
+            tbar.set_description(self.evaluator.tbar_desc(self.saver.epoch))
 
     def train(self, num_epochs):
         self.model.train()
@@ -119,18 +137,20 @@ class ImageClassification(Experiment):
             self.saver.save()
 
     def train_and_validate(self, num_epochs):
-        self.model.train()
         train_iter = self.dataloader.train_iter()
         val_iter = self.dataloader.val_iter()
+        self.evaluator.reset()
         for n in range(num_epochs):
+            self.model.train()
             self._epoch(train_iter)
             self.saver.epoch += 1
+
             self.model.eval()
             self._epoch(val_iter)
+            self.logger.summarize_scalars(self.evaluator)
             self.saver.model_state_dict = self._get_model_state()
             self.saver.optimizer_state_dict = self.optimizer.state_dict()
             self.saver.save(metric_evaluator = self.evaluator)
-            self.evaluator.reset()
 
     def test(self):
         self.model.eval()

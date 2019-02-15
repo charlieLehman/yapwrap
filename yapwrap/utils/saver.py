@@ -13,25 +13,16 @@
 # limitations under the License.
 # ==============================================================================
 
-import os
-import shutil
-import torch
-from collections import OrderedDict
-import glob
-import numpy as np
-import json
 import torch
 from torch import nn
+import numpy as np
+import json
+import os
 
 class Saver(object):
-    def __init__(self, experiment_name, **kwargs):
-        self.directory = os.path.join('run', experiment_name)
-        self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')))
-        run_id = int(self.runs[-1].split('_')[-1]) + 1 if self.runs else 0
-        self.experiment_dir = os.path.join(self.directory, 'experiment_{:04d}'.format(run_id))
-        if not os.path.exists(self.experiment_dir):
-            os.makedirs(self.experiment_dir)
+    def __init__(self, experiment_name, experiment_dir, **kwargs):
         self.experiment_name = experiment_name
+        self.experiment_dir = experiment_dir
         self.experiment_config(kwargs)
 
         self.loss = None
@@ -69,8 +60,8 @@ class Saver(object):
         return x
 
 class BestMetricSaver(Saver):
-    def __init__(self, metric_set, metric_name, experiment_name, criterion=np.greater_equal, **kwargs):
-        super(BestMetricSaver, self).__init__(experiment_name, **kwargs)
+    def __init__(self, metric_set, metric_name, experiment_name, experiment_dir, criterion=np.greater_equal, **kwargs):
+        super(BestMetricSaver, self).__init__(experiment_name, experiment_dir, **kwargs)
         self.metric_set = metric_set
         self.metric_name = metric_name
         self.metric = None

@@ -91,10 +91,19 @@ class Evaluator(object):
                 if not isinstance(v, Metric):
                     raise TypeError('{} is not a valid Metric'.format(type(v).__name__))
         self.metrics = metrics
+        self.metric_set = None
+        self.criterion = None
         self.state = {'train':{}, 'validation':{}, 'test':{}}
+        self.step = 0
 
-    def update(self):
-        raise NotImplementedError
+    def update(self, **kwargs):
+        if 'criterion' in kwargs and 'loss' in kwargs:
+            self.criterion = kwargs['criterion']
+            self.state[self.metric_set].update({self.criterion:kwargs['loss']})
+        if 'metrics' in kwargs:
+            output, target = kwargs['metrics']
+            for metric in self.metrics[self.metric_set].values():
+                self.state[self.metric_set].update(metric(output, target))
 
     def reset(self):
         for v in self.metrics.values():
@@ -103,6 +112,9 @@ class Evaluator(object):
 
     def __str__(self):
         return str(self.metrics)
+
+    def tbar_desc(self):
+        return str(self)
 
 class ImageClassificationEvaluator(Evaluator):
     def __init__(self, num_classes):
@@ -122,8 +134,14 @@ class ImageClassificationEvaluator(Evaluator):
         }
         super(ImageClassificationEvaluator, self).__init__(metrics)
 
-    def update(self, output, target):
-        for metric in self.metrics[self.metric_set].values():
-            self.state[self.metric_set].update(metric(output, target))
+    def tbar_desc(self, epoch):
+        desc = "Epoch {} - ".format(epoch)
+        if self.criterion is not None:
+            desc += "{} - Loss: {:.3f}".format(self.metric_set, self.state[self.metric_set][self.criterion])
+        else:
+            k,v = self.state[self.metric_set].items()[0]
+            desc += "{} - {}: {:.3f}".format(self.metric_set, k,v)
+        return desc
+
 
 

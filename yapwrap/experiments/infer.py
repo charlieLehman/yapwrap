@@ -14,7 +14,7 @@
 # ==============================================================================
 
 from torch import nn
-from pytorchlab.utils import Saver, Evaluator, Logger
+from yapwrap.utils import Saver, Evaluator, Logger
 
 class Inference(object):
     def __init__(self, args):

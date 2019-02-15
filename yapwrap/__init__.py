@@ -13,6 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-from pytorchlab import experiments
-from pytorchlab import utils
-from pytorchlab import dataloaders
+from yapwrap import experiments
+from yapwrap import utils
+from yapwrap import dataloaders
