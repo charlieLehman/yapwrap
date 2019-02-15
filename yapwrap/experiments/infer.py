@@ -13,6 +13,14 @@
 # limitations under the License.
 # ==============================================================================
 
-class Logger(object):
+from torch import nn
+from pytorchlab.utils import Saver, Evaluator, Logger
+
+class Inference(object):
     def __init__(self, args):
-        self.args = args
+        self.model = args.model(**args.model_args)
+        self.dataloader = args.dataloader(**args.dataloader_args)
+        self.train_args = args.train_args
+        self.evaluator = args.eval_args
+        self.saver = args.saver_args
+        self.logger = args.logger_args

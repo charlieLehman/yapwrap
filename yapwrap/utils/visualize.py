@@ -13,14 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 
-from torch import nn
-from pytorch-lab.utils import Saver, Evaluator, Logger
-
-class Experiment(object):
+class Visualizer(object):
     def __init__(self, args):
-        self.model = args.model(**args.model_args)
-        self.dataloader = args.dataloader(**args.dataloader_args)
-        self.train_args = args.train_args
-        self.evaluator = args.eval_args
-        self.saver = args.saver_args
-        self.logger = args.logger_args
+        self.args = args

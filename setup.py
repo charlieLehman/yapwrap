@@ -20,15 +20,15 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name = "PyTorch-Laboratory",
+    name = "yapwrap",
     version = "0.0.1",
     author = "Charlie Lehman",
     author_email = "charlie.k.lehman@gmail.com",
-    description = ("Research tools for PyTorch"),
+    description = ("Yet Another PyTorch Wrapper"),
     license = "Apache",
     keywords = "pytorch research deepleanring machinelearning",
-    url = "https://github.gatech.edu/clehman31/pytorch-lab",
-    packages=['pytorch-lab'],
+    url = "https://github.gatech.edu/clehman31/yapwrap",
+    packages=['yapwrap'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
@@ -37,6 +37,7 @@ setup(
     install_requires=[
         "torch",
         "torchvision",
+        "scikit-learn",
         "pandas",
         "tqdm",
         "tensorboardX",
