@@ -31,7 +31,6 @@ class Experiment(object):
         lr = kwargs['lr']
         evaluator = kwargs['evaluator']
         optimizer = kwargs['optimizer']
-        lr_scheduler = kwargs['lr_scheduler']
         criterion = kwargs['criterion']
         criterion.__str__ = criterion.__class__.__name__.split('(')[0]
         self.experiment_name = '{}_{}'.format(model.name, dataloader.name)
@@ -48,7 +47,6 @@ class Experiment(object):
         if not isinstance(optimizer, torch.optim.Optimizer):
             raise TypeError('{} is not a valid optimizer'.format(type(optimizer).__name__))
         self.optimizer = optimizer
-        self.lr_scheduler = lr_scheduler
         if not isinstance(criterion, nn.modules.loss._Loss):
             raise TypeError('{} is not a valid criterion'.format(type(criterion).__name__))
         self.criterion = criterion
@@ -98,6 +96,7 @@ class ImageClassification(Experiment):
     def __init__(self, **kwargs):
         super(ImageClassification, self).__init__(**kwargs)
         self.saver = yapwrap.utils.BestMetricSaver('validation', 'RunningAccuracy', self.experiment_name, self.experiment_dir)
+        self.lr_scheduler = kwargs['lr_scheduler']
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)
@@ -119,6 +118,7 @@ class ImageClassification(Experiment):
     def _epoch(self, data_iter):
         self.evaluator.metric_set = data_iter.metric_set
         tbar = tqdm(data_iter)
+        self.lr_scheduler.step()
         for input, target in tbar:
             if self.on_cuda:
                 input = input.cuda()
