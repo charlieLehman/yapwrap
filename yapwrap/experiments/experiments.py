@@ -98,6 +98,7 @@ class ImageClassification(Experiment):
     def __init__(self, **kwargs):
         super(ImageClassification, self).__init__(**kwargs)
         self.saver = yapwrap.utils.BestMetricSaver('validation', 'RunningAccuracy', self.experiment_name, self.experiment_dir)
+        self.lr_scheduler = kwargs['lr_scheduler']
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)
@@ -139,9 +140,10 @@ class ImageClassification(Experiment):
     def train_and_validate(self, num_epochs):
         train_iter = self.dataloader.train_iter()
         val_iter = self.dataloader.val_iter()
-        self.evaluator.reset()
         for n in range(num_epochs):
+            self.evaluator.reset()
             self.model.train()
+            self.lr_scheduler.step()
             self._epoch(train_iter)
             self.saver.epoch += 1
 

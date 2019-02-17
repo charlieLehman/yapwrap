@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ['TinyResNet', 'TinyResNet18']
+__all__ = ['TinyResNet', 'TinyResNet18', 'TinyResNet50']
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -117,7 +117,9 @@ def TinyResNet34(num_classes):
     return x
 
 def TinyResNet50(num_classes):
-    return TinyResNet(Bottleneck, [3,4,6,3], num_classes)
+    x = TinyResNet(Bottleneck, [3,4,6,3], num_classes)
+    x.name = "{}50".format(x.name)
+    return x
 
 def TinyResNet101(num_classes):
     return TinyResNet(Bottleneck, [3,4,23,3], num_classes)
