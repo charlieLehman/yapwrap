@@ -13,6 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 
+from torch.nn import functional as F
 from torch import nn
 import torch
 import numpy as np
@@ -81,6 +82,46 @@ class RunningConfusionMatrix(Metric):
     def reset(self):
         self.matrix = None
 
+class RunningExpectedCalibrationError(Metric):
+    def __init__(self, n_bins=15):
+        """
+        n_bins (int): number of confidence interval bins
+        """
+        super(RunningExpectedCalibrationError, self).__init__()
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        self.bin_lowers = bin_boundaries[:-1]
+        self.bin_uppers = bin_boundaries[1:]
+        self.corr_in_bin = 0
+        self.conf_in_bin = 0
+        self.prop_in_bin = 0
+        self.num_samples = 0
+
+    def reset(self):
+        self.corr_in_bin = 0
+        self.conf_in_bin = 0
+        self.prop_in_bin = 0
+        self.num_samples = 0
+
+    def forward(self, output, target):
+        # labels = labels.long()
+        confidences, predictions = torch.max(F.softmax(output, dim=1), 1)
+        accuracies = predictions.eq(target)
+        self.num_samples += output.size(0)
+
+        for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+            # Calculated |confidence - accuracy| in each bin
+            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+            prop_in_bin = in_bin.sum().item()
+            self.prop_in_bin += prop_in_bin
+            if prop_in_bin > 0:
+                self.corr_in_bin += accuracies[in_bin].sum().item()
+                self.conf_in_bin += confidences[in_bin].sum().item()
+        ece = self.ece()
+        return {'RunningExpectedCalibrationError':ece}
+
+    def ece(self):
+        return np.abs(self.corr_in_bin/self.num_samples
+                         - self.conf_in_bin/self.num_samples) * (self.prop_in_bin/self.num_samples)
 
 class Evaluator(object):
     def __init__(self, metrics):
@@ -126,6 +167,7 @@ class ImageClassificationEvaluator(Evaluator):
             'validation':
             {
                 'RunningAccuracy':RunningAccuracy(),
+                'RunningExpectedCalibrationError':RunningExpectedCalibrationError(),
             },
             'test':
             {
