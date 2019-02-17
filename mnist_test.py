@@ -1,19 +1,18 @@
 import torch
 from torch import nn
-from yapwrap.dataloaders import CIFAR10
+from yapwrap.dataloaders import MNIST
 from yapwrap.experiments import ImageClassification
 from yapwrap.utils import ImageClassificationEvaluator
-from yapwrap.models import TinyResNet18, ComplementConstraint
-from torchvision.models import resnet18
+from yapwrap.models import MNIST_ConvNet, FASHION_MNIST_ConvNet
 import inspect
 
 # Training Data
-dataloader = CIFAR10()
+dataloader = MNIST()
 
 # Models to Compare
-trn = TinyResNet18(dataloader.num_classes)
-trn_cc = ComplementConstraint(trn)
-models = [trn, trn_cc]
+mnist_net = MNIST_ConvNet()
+fmnist_net = FASHION_MNIST_ConvNet()
+models = [mnist_net, fmnist_net]
 
 # Evaluation Criterion
 evaluator = ImageClassificationEvaluator(dataloader.num_classes)
