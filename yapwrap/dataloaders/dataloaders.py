@@ -5,7 +5,7 @@ import numpy as np
 import torch
 import os
 
-__all__ = ['Dataloader','CIFAR10', 'MNIST']
+__all__ = ['Dataloader','CIFAR10', 'MNIST', 'FASHION_MNIST']
 
 def to_np(x):
     return x.detach().cpu().numpy()
@@ -181,7 +181,7 @@ class FASHION_MNIST(Dataloader):
         return train_iter
 
     def test_iter(self):
-        testset = dset.FashionMNISTMNIST(root=self.root, train=False, download=True, transform=self.test_transform)
+        testset = dset.FashionMNIST(root=self.root, train=False, download=True, transform=self.test_transform)
         test_iter = DataLoader(testset, batch_size=self.test_batch_size,
                                shuffle=False, num_workers=12, pin_memory=True)
         test_iter.metric_set = 'test'

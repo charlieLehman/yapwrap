@@ -1,18 +1,19 @@
 import torch
 from torch import nn
-from yapwrap.dataloaders import MNIST
+from yapwrap.dataloaders import MNIST, FASHION_MNIST
 from yapwrap.experiments import ImageClassification
 from yapwrap.utils import ImageClassificationEvaluator
 from yapwrap.models import MNIST_ConvNet, FASHION_MNIST_ConvNet
 import inspect
 
 # Training Data
-dataloader = MNIST()
+# dataloader = MNIST()
+dataloader = FASHION_MNIST()
 
 # Models to Compare
-mnist_net = MNIST_ConvNet()
+# mnist_net = MNIST_ConvNet()
 fmnist_net = FASHION_MNIST_ConvNet()
-models = [mnist_net, fmnist_net]
+models = [fmnist_net]
 
 # Evaluation Criterion
 evaluator = ImageClassificationEvaluator(dataloader.num_classes)
