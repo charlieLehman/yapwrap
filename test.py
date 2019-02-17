@@ -29,5 +29,3 @@ for model in models:
     exp = ImageClassification(**kwargs).cuda()
     exp.train_and_validate(300)
 # exp.test()
-
-
