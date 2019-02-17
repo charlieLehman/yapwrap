@@ -158,7 +158,6 @@ class FASHION_MNIST(Dataloader):
                 tvtfs.RandomCrop(size, padding=4),
                 tvtfs.RandomHorizontalFlip(),
                 tvtfs.ToTensor(),
-                tvtfs.Normalize((0.1307,), (0.3081,)),
             ])
         else:
             self.train_transform = transforms['train']
@@ -193,7 +192,7 @@ class FASHION_MNIST(Dataloader):
         return val_iter
     @property
     def class_names(self):
-        return ('one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten')
+        return ('T-Shirt/Top', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sandal', 'Shirt', 'Sneaker', 'Bag', 'Ankle Boot')
 
     @property
     def num_classes(self):
