@@ -19,13 +19,13 @@ models = [mnist_net]
 evaluator = ImageClassificationEvaluator(dataloader.num_classes)
 
 # Run both experiments
-lr = 0.1
-num_epochs = 300
+lr = 0.01
+num_epochs = 10
 for model in models:
     optimizer = torch.optim.Adam(model.parameters())
-    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [100,200], 0.1)
+    lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [5], 0.1)
     criterion=nn.CrossEntropyLoss()
     kwargs = {'model':model, 'lr':lr, 'lr_scheduler': lr_scheduler, 'optimizer':optimizer, 'criterion':criterion, 'dataloader':dataloader, 'evaluator':evaluator}
     exp = ImageClassification(**kwargs).cuda()
-    exp.train_and_validate(300)
+    exp.train_and_validate(num_epochs)
 # exp.test()
