@@ -7,16 +7,16 @@ from yapwrap.models import MNIST_ConvNet, FASHION_MNIST_ConvNet
 import inspect
 
 # Training Data
-dataloader = MNIST()
-# dataloader = FASHION_MNIST()
+# dataloader = MNIST()
+dataloader = FASHION_MNIST()
 
 # Models to Compare
-mnist_net = MNIST_ConvNet()
-# fmnist_net = FASHION_MNIST_ConvNet()
-models = [mnist_net]
+# mnist_net = MNIST_ConvNet()
+fmnist_net = FASHION_MNIST_ConvNet()
+models = [fmnist_net]
 
 # Evaluation Criterion
-evaluator = ImageClassificationEvaluator(dataloader.num_classes)
+
 
 # Run both experiments
 lr = 0.01
@@ -25,6 +25,7 @@ for model in models:
     optimizer = torch.optim.Adam(model.parameters())
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [5], 0.1)
     criterion=nn.CrossEntropyLoss()
+    evaluator = ImageClassificationEvaluator(dataloader.num_classes)
     kwargs = {'model':model, 'lr':lr, 'lr_scheduler': lr_scheduler, 'optimizer':optimizer, 'criterion':criterion, 'dataloader':dataloader, 'evaluator':evaluator}
     exp = ImageClassification(**kwargs).cuda()
     exp.train_and_validate(num_epochs)
