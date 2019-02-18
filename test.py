@@ -11,8 +11,8 @@ import inspect
 dataloader = CIFAR10()
 
 # Models to Compare
-trn = TinyResNet18(dataloader.num_classes)
-trn_cc = ComplementConstraint(TinyResNet18(dataloader.num_classes))
+trn = TinyResNet50(dataloader.num_classes)
+trn_cc = ComplementConstraint(TinyResNet50(dataloader.num_classes))
 models = [trn, trn_cc]
 
 # Evaluation Criterion
