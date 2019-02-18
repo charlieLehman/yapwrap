@@ -5,6 +5,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+__all__ = ['MNIST_ConvNet', 'FASHION_MNIST_ConvNet']
+
 class MNIST_ConvNet(nn.Module):
     def __init__(self, in_channels=1):
         super(MNIST_ConvNet, self).__init__()
