@@ -50,7 +50,7 @@ class Saver(object):
             json.dump(config, f, sort_keys=True, indent=4)
 
 class BestMetricSaver(Saver):
-    def __init__(self, metric_set, metric_name, experiment_name, experiment_dir, criterion=np.greater_equal, **kwargs):
+    def __init__(self, metric_set, metric_name, experiment_name, experiment_dir, criterion=np.greater_equal):
         super(BestMetricSaver, self).__init__(experiment_name, experiment_dir)
         self.metric_set = metric_set
         self.metric_name = metric_name

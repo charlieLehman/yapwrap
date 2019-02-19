@@ -13,14 +13,23 @@
 # limitations under the License.
 # ==============================================================================
 
+from torch.nn import functional as F
 from torch import nn
-from yapwrap.utils import Saver, Evaluator, Logger
+import torch
+import numpy as np
+from sklearn.metrics import confusion_matrix
 
-class Inference(object):
-    def __init__(self, args):
-        self.model = args.model(**args.model_args)
-        self.dataloader = args.dataloader(**args.dataloader_args)
-        self.train_args = args.train_args
-        self.evaluator = args.eval_args
-        self.saver = args.saver_args
-        self.logger = args.logger_args
+class Metric(nn.Module):
+    def __init__(self):
+        super(Metric, self).__init__()
+        self.name = self.__class__.__name__
+
+    def forward(self):
+        raise NotImplementedError
+
+    def __str__(self):
+        return self.name
+
+    def reset(self):
+        pass
+

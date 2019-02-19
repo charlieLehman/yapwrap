@@ -3,7 +3,7 @@ from torch import nn
 from yapwrap.dataloaders import MNIST, FASHION_MNIST
 from yapwrap.experiments import ImageClassification
 from yapwrap.utils import ImageClassificationEvaluator
-from yapwrap.models import MNIST_ConvNet, FASHION_MNIST_ConvNet
+from yapwrap.models import ConvNet
 import inspect
 
 # Training Data

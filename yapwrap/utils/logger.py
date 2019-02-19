@@ -28,8 +28,6 @@ class Logger(object):
     def summarize_scalars(self, evaluator):
         state = evaluator.state[evaluator.metric_set]
         for k, v in state.items():
-            if 'Running' in k:
-                k = k.replace('Running','')
             summary_name = os.path.join(k, evaluator.metric_set)
             if np.isscalar(v):
                 self.writer.add_scalar(summary_name, v, evaluator.step)

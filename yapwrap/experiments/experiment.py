@@ -14,10 +14,8 @@
 # ==============================================================================
 
 import yapwrap
-from torchvision.models import ResNet
 import torch
 from torch import nn
-from collections import OrderedDict
 import os
 import glob
 from tqdm import tqdm
@@ -92,69 +90,3 @@ class Experiment(object):
         return self.model.state_dict()
 
 
-class ImageClassification(Experiment):
-    """Image Classification Design Pattern
-    """
-    def __init__(self, **kwargs):
-        super(ImageClassification, self).__init__(**kwargs)
-        self.saver = yapwrap.utils.BestMetricSaver('validation', 'RunningAccuracy', self.experiment_name, self.experiment_dir)
-        self.lr_scheduler = kwargs['lr_scheduler']
-
-    def _step(self, input, target, is_training=False):
-        output = self.model(input)
-        loss = self.criterion(output, target)
-        eval_update = {'metrics':(output, target),
-                        'loss':loss.item(),
-                        'criterion':str(self.criterion)}
-        self.evaluator.update(**eval_update)
-        if self.model.training:
-            self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
-            self.saver.step += 1
-            self.evaluator.step += 1
-            self.saver.loss = loss.item()
-            self.logger.summarize_scalars(self.evaluator)
-        return output
-
-    def _epoch(self, data_iter):
-        self.evaluator.metric_set = data_iter.metric_set
-        tbar = tqdm(data_iter)
-        for input, target in tbar:
-            if self.on_cuda:
-                input = input.cuda()
-                target = target.cuda()
-            output = self._step(input, target)
-            tbar.set_description(self.evaluator.tbar_desc(self.saver.epoch))
-
-    def train(self, num_epochs):
-        self.model.train()
-        train_iter = self.dataloader.train_iter()
-        for n in range(num_epochs):
-            self._epoch(train_iter)
-            self.saver.epoch += 1
-            self.saver.model_state_dict = self._get_model_state()
-            self.saver.optimizer_state_dict = self.optimizer.state_dict()
-            self.saver.save(metric_evaluator = self.evaluator)
-
-    def train_and_validate(self, num_epochs):
-        train_iter = self.dataloader.train_iter()
-        val_iter = self.dataloader.val_iter()
-        for n in range(num_epochs):
-            self.evaluator.reset()
-            self.model.train()
-            self.lr_scheduler.step()
-            self._epoch(train_iter)
-            self.saver.epoch += 1
-
-            self.model.eval()
-            self._epoch(val_iter)
-            self.logger.summarize_scalars(self.evaluator)
-            self.saver.model_state_dict = self._get_model_state()
-            self.saver.optimizer_state_dict = self.optimizer.state_dict()
-            self.saver.save(metric_evaluator = self.evaluator)
-
-    def test(self):
-        self.model.eval()
-        test_iter = self.dataloader.test_iter()
-        self._epoch(test_iter)

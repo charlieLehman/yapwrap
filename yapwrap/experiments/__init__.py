@@ -1,2 +1,2 @@
-from .experiments import *
-from .infer import Inference
+from .experiment import *
+from .image_classification import *
