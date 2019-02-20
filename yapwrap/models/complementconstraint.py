@@ -18,7 +18,6 @@ class ComplementConstraint(nn.Module):
         for k in range(num_classes):
             _out = torch.cat([out[:,:k] , out[:,(k+1):]],1)
             c_out[:,k] = -torch.logsumexp(_out, 1)
-
         return c_out
 
 class ComplementConstraintCombined(nn.Module):

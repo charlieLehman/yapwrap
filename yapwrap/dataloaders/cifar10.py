@@ -38,6 +38,7 @@ class CIFAR10(Dataloader):
         else:
             self.test_transform = transforms['test']
         self.example_indices = [4,5,17,47,25,22,3,13,0,27]
+        self._class_names = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     def train_iter(self):
         trainset = dset.CIFAR10(root=self.root, train=True, download=True, transform=self.train_transform)
@@ -60,7 +61,7 @@ class CIFAR10(Dataloader):
 
     @property
     def class_names(self):
-        return ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+        return self._class_names
 
     @property
     def num_classes(self):
@@ -68,15 +69,19 @@ class CIFAR10(Dataloader):
 
     @property
     def examples(self):
-        path_to_npy = os.path.join(self.root, '{}_examples'.format(self.name))
-        try:
-            return torch.from_numpy(np.load(path_to_npy + '.npy'))
-        except FileNotFoundError:
-            test_list = list(self.test_iter())
-            x, l = test_list[-1]
-            x = to_np(x[self.example_indices])
-            np.save(path_to_npy, x)
-            return torch.from_numpy(x)
+        # path_to_npy = os.path.join(self.root, '{}_examples'.format(self.name))
+        # try:
+        #     return torch.from_numpy(np.load(path_to_npy + '.npy'))
+        # except FileNotFoundError:
+        test_list = list(self.test_iter())
+        x, l = test_list[-1]
+        x = to_np(x[self.example_indices])
+        x *= np.reshape(np.array((0.2023, 0.1994, 0.2010)), (1,3,1,1))
+        x += np.reshape(np.array((0.4914, 0.4822, 0.4465)), (1,3,1,1))
+        x[x<0] = 0
+        x[x>1] = 1.
+        # np.save(path_to_npy, x)
+        return torch.from_numpy(x)
 
     @property
     def params(self):
