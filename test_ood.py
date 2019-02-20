@@ -21,7 +21,7 @@ models = [trn, trn_cc]
 
 # Run both experiments
 lr = 0.1
-num_epochs = 10
+num_epochs = 100
 for model in models:
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4, nesterov=False)
     lr_scheduler = PolyLR(optimizer, num_epochs)

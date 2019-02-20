@@ -25,12 +25,19 @@ class Logger(object):
         self.experiment_dir = experiment_dir
         self.writer = SummaryWriter(experiment_dir)
 
+    def process_state(self, state, metric_set, step):
+        for k, v in state.items():
+            summary_name = os.path.join(k, metric_set)
+            if np.isscalar(v):
+                self.writer.add_scalar(summary_name, v, step)
+            if isinstance(v, dict):
+                print(v)
+                self.process_state(v, metric_set, step)
+
     def summarize_scalars(self, evaluator):
         state = evaluator.state[evaluator.metric_set]
-        for k, v in state.items():
-            summary_name = os.path.join(k, evaluator.metric_set)
-            if np.isscalar(v):
-                self.writer.add_scalar(summary_name, v, evaluator.step)
+        self.process_state(state, evaluator.metric_set, evaluator.step)
+
 
     def visualize_image(self):
         raise NotImplementedError

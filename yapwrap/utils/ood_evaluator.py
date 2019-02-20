@@ -17,7 +17,7 @@ from torch.nn import functional as F
 from torch import nn
 import torch
 import numpy as np
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_auc_score, average_precision_score
 from yapwrap.utils import (Metric,
                            Evaluator,
                            Accuracy,
@@ -34,7 +34,7 @@ class OODEvaluator(ImageClassificationEvaluator):
         super(OODEvaluator, self).__init__(num_classes)
         self.id_state = (None, None)
         self.ood_state = (None, None)
-        self.state.update({'OOD':{}})
+        self.state.update({'OOD':{'FPRatRecall':{}, 'AUROC':{}, 'AUPR':{}}})
 
     def update(self, **kwargs):
         super(OODEvaluator, self).update(**kwargs)
@@ -64,9 +64,12 @@ class OODEvaluator(ImageClassificationEvaluator):
         ood_confidence, ood_target = self.ood_state
         confidence = np.concatenate((id_confidence, ood_confidence))
         target = np.concatenate((id_target, ood_target))
-        name = 'OOD/{}'.format(dataloader_name)
-
-        self.state['OOD'] = {name:fpr_and_fdr_at_recall(target, confidence, recall_level=0.95)}
+        name = 'FPRatRecall_{}'.format(dataloader_name)
+        self.state['OOD']['FPRatRecall'].update({name:fpr_and_fdr_at_recall(target, confidence, recall_level=0.95)})
+        name = 'AUROC_{}'.format(dataloader_name)
+        self.state['OOD']['AUROC'].update({name:roc_auc_score(target, confidence)})
+        name = 'AUPR_{}'.format(dataloader_name)
+        self.state['OOD']['AUPR'].update({name:average_precision_score(target, confidence)})
         self.ood_state = (None, None)
 
     def reset(self):
