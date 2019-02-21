@@ -10,7 +10,7 @@ import inspect
 
 # Training Data
 dataloader = CIFAR10()
-ood_dataloaders = [SVHN(), NoisyDataloader(CIFAR10(), p=0.2), NoisyDataloader(CIFAR10(), p=0.5)]
+ood_dataloaders = [SVHN(), NoisyDataloader(CIFAR10(), p=0.2), NoisyDataloader(CIFAR10(), p=0.5), NoisyDataloader(CIFAR10(), p=1.0)]
 
 # Models to Compare
 trn = TinyResNet18(dataloader.num_classes)
@@ -21,7 +21,7 @@ models = [trn, trn_cc]
 
 # Run both experiments
 lr = 0.1
-num_epochs = 100
+num_epochs = 300
 for model in models:
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1, momentum=0.9, weight_decay=1e-4, nesterov=False)
     lr_scheduler = PolyLR(optimizer, num_epochs)

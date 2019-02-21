@@ -31,7 +31,6 @@ class Logger(object):
             if np.isscalar(v):
                 self.writer.add_scalar(summary_name, v, step)
             if isinstance(v, dict):
-                print(v)
                 self.process_state(v, metric_set, step)
 
     def summarize_scalars(self, evaluator):

@@ -48,7 +48,7 @@ class OutOfDistribution(ImageClassification):
                 output = self.model(input)
                 self.evaluator.ood_update(output, target)
             self.evaluator.ood_run(dataloader.name)
-            self.logger.summarize_scalars(self.evaluator)
+        self.logger.summarize_scalars(self.evaluator)
         self.evaluator.metric_set = _metric_set
 
     def train(self, num_epochs):
