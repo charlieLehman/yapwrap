@@ -4,7 +4,7 @@ import numpy as np
 
 
 cifar10 = CIFAR10()
-noisy_cifar10 = NoisyDataloader(CIFAR10(), p=0.05)
+noisy_cifar10 = NoisyDataloader(CIFAR10(), p=1.00)
 
 x = cifar10.examples
 y = noisy_cifar10.examples

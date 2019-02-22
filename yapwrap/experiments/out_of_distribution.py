@@ -33,7 +33,7 @@ class OutOfDistribution(ImageClassification):
         for v in ood_dataloaders:
             if not isinstance(v, yapwrap.dataloaders.Dataloader):
                 raise TypeError('{} is not a valid Dataloader'.format(type(v).__name__))
-        self.ood_iters = [(dataloader.name, dataloader.val_iter()) for dataloader in ood_dataloaders]
+        self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in ood_dataloaders]
         self.experiment_name = '{}_OOD'.format(self.experiment_name)
 
     def ood_run(self):
@@ -47,6 +47,7 @@ class OutOfDistribution(ImageClassification):
                     target = target.cuda()
                 output = self.model(input)
                 self.evaluator.ood_update(output, target)
+                tbar.set_description(data_iter.name)
             self.evaluator.ood_run(name)
         self.logger.summarize_scalars(self.evaluator)
         self.evaluator.metric_set = _metric_set

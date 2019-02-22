@@ -5,11 +5,12 @@ class Dataloader(object):
 
         self.name = self.__class__.__name__
 
-        if not isinstance(root, str):
-            raise TypeError('{} is not a valid type str'.format(type(root).__name__))
-        if not os.path.exists(root):
-            print('creating {}'.format(root))
-            os.mkdir(root)
+        if root is not None:
+            if not isinstance(root, str):
+                raise TypeError('{} is not a valid type str'.format(type(root).__name__))
+            if not os.path.exists(root):
+                print('creating {}'.format(root))
+                os.mkdir(root)
         self.root = root
         if isinstance(size, tuple):
             self.size = size
@@ -42,7 +43,13 @@ class Dataloader(object):
     def train_iter(self):
         raise NotImplementedError
 
+    def val_iter(self):
+        raise NotImplementedError
+
     def test_iter(self):
+        raise NotImplementedError
+
+    def ood_iter(self):
         raise NotImplementedError
 
     @property

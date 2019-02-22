@@ -64,11 +64,11 @@ class OODEvaluator(ImageClassificationEvaluator):
         ood_confidence, ood_target = self.ood_state
         confidence = np.concatenate((id_confidence, ood_confidence))
         target = np.concatenate((id_target, ood_target))
-        name = 'OOD_{}/FPRatRecall'.format(dataloader_name)
+        name = '{}/FPRatRecall'.format(dataloader_name)
         self.state['OOD']['FPRatRecall'].update({name:fpr_and_fdr_at_recall(target, confidence, recall_level=0.95)})
-        name = 'OOD_{}/AUROC'.format(dataloader_name)
+        name = '{}/AUROC'.format(dataloader_name)
         self.state['OOD']['AUROC'].update({name:roc_auc_score(target, confidence)})
-        name = 'OOD_{}/AUPR'.format(dataloader_name)
+        name = '{}/AUPR'.format(dataloader_name)
         self.state['OOD']['AUPR'].update({name:average_precision_score(target, confidence)})
         self.ood_state = (None, None)
 

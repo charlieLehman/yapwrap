@@ -38,6 +38,7 @@ setup(
         "torch",
         "torchvision",
         "scikit-learn",
+        "scikit-image",
         "pandas",
         "tqdm",
         "tensorboardX",
