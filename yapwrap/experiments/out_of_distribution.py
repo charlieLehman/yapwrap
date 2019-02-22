@@ -33,21 +33,21 @@ class OutOfDistribution(ImageClassification):
         for v in ood_dataloaders:
             if not isinstance(v, yapwrap.dataloaders.Dataloader):
                 raise TypeError('{} is not a valid Dataloader'.format(type(v).__name__))
-        self.ood_dataloaders = ood_dataloaders
+        self.ood_iters = [(dataloader.name, dataloader.val_iter()) for dataloader in ood_dataloaders]
         self.experiment_name = '{}_OOD'.format(self.experiment_name)
 
     def ood_run(self):
         _metric_set = self.evaluator.metric_set
         self.evaluator.metric_set = 'OOD'
-        for dataloader in self.ood_dataloaders:
-            data_iter = dataloader.val_iter()
+        for name, data_iter in self.ood_iters:
             tbar = tqdm(data_iter)
             for input, target in tbar:
                 if self.on_cuda:
                     input = input.cuda()
+                    target = target.cuda()
                 output = self.model(input)
                 self.evaluator.ood_update(output, target)
-            self.evaluator.ood_run(dataloader.name)
+            self.evaluator.ood_run(name)
         self.logger.summarize_scalars(self.evaluator)
         self.evaluator.metric_set = _metric_set
 
@@ -60,11 +60,11 @@ class OutOfDistribution(ImageClassification):
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step()
             self._epoch(train_iter)
-            self.saver.epoch += 1
 
             self.model.eval()
             self._epoch(val_iter)
             self.ood_run()
+            self.saver.epoch += 1
 
             self.logger.summarize_scalars(self.evaluator)
             self.saver.model_state_dict = self._get_model_state()

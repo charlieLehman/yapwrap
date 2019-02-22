@@ -35,9 +35,4 @@ class ComplementConstraintCombined(nn.Module):
             _out = torch.cat([out[:,:k] , out[:,(k+1):]],1)
             c_out[:,k] = -torch.logsumexp(_out, 1)
 
-        if self.training:
-            return torch.logsumexp(torch.stack([c_out,out],0),0)
-
-        # Force the model to update the worst side
-        l_out = -torch.logsumexp(torch.stack([-c_out,-out],0),0)
-        return l_out
+        return c_out + out

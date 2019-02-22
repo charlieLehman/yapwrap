@@ -4,3 +4,4 @@ from .mnist import *
 from .fashion_mnist import *
 from .svhn import *
 from .noise import *
+from .tiny_imagenet import *

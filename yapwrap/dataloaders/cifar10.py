@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import os
 
-__all__ = ['CIFAR10']
+__all__ = ['CIFAR10', 'CIFAR100']
 
 def to_np(x):
     return x.detach().cpu().numpy()
@@ -82,6 +82,53 @@ class CIFAR10(Dataloader):
         x[x>1] = 1.
         # np.save(path_to_npy, x)
         return torch.from_numpy(x)
+
+    @property
+    def params(self):
+        p = self.param_dict
+        p['transforms']['train'] = str(self.train_transform)
+        p['transforms']['test'] = str(self.test_transform)
+        p.update({'class_names':self.class_names})
+        p.update({'num_classes':self.num_classes})
+        p.update({'sample_indices':self.example_indices})
+        return p
+
+class CIFAR100(CIFAR10):
+    def __init__(self, root='./data', size=32, batch_sizes={'train':128,'test':100}, transforms={'train':None, 'test':None}):
+        super(CIFAR100, self).__init__(root, size, batch_sizes, transforms)
+        self.example_indices = None
+        self._class_names = None
+
+    def train_iter(self):
+        trainset = dset.CIFAR100(root=self.root, train=True, download=True, transform=self.train_transform)
+        train_iter = DataLoader(trainset, batch_size=self.train_batch_size,
+                                shuffle=True, num_workers=12, pin_memory=True)
+        train_iter.metric_set = 'train'
+        return train_iter
+
+    def test_iter(self):
+        testset = dset.CIFAR100(root=self.root, train=False, download=True, transform=self.test_transform)
+        test_iter = DataLoader(testset, batch_size=self.test_batch_size,
+                               shuffle=False, num_workers=12, pin_memory=True)
+        test_iter.metric_set = 'test'
+        return test_iter
+
+    def val_iter(self):
+        val_iter = self.test_iter()
+        val_iter.metric_set = 'validation'
+        return val_iter
+
+    @property
+    def class_names(self):
+        return self._class_names
+
+    @property
+    def num_classes(self):
+        return 100
+
+    @property
+    def examples(self):
+        return False
 
     @property
     def params(self):

@@ -12,5 +12,7 @@ Saver
 Logger
 ## TODO
 Write a better README
+Run from args
+Reproduce from an experiment log
 ## Requirements
 

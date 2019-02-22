@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-__all__ = ['ResNet18ImpBG','ResNet18ImpBGDecoder',]
+__all__ = ['TinyAttention18', 'TinyAttentionDecoder18']
 
 
 class BasicBlock(nn.Module):
@@ -58,9 +58,9 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResNetImpBG(nn.Module):
+class TinyAttention(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
-        super(ResNetImpBG, self).__init__()
+        super(TinyAttention, self).__init__()
         self.name = self.__class__.__name__
         self.in_planes = 64
 
@@ -96,12 +96,9 @@ class ResNetImpBG(nn.Module):
             _out = torch.cat([out[:,:k,:,:] , out[:,(k+1):,:,:]],1)
             c_out[:,k,:,:] = -torch.logsumexp(_out, 1)
 
-        # Force the model to update the worst side
-        l_out = -torch.logsumexp(torch.stack([-c_out,-out],0),0)
-
         # Where is the model looking?
-        attn = torch.sigmoid(torch.logsumexp(l_out, 1, keepdim=True))
-        out = attn*l_out
+        attn = torch.sigmoid(torch.logsumexp(out, 1, keepdim=True))
+        out = attn*c_out
 
         return out, attn
 
@@ -111,9 +108,10 @@ class ResNetImpBG(nn.Module):
         return out
 
 
-class ResNetImpBGDecoder(nn.Module):
+class TinyAttentionDecoder(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
-        super(ResNetImpBGDecoder, self).__init__()
+        super(TinyAttentionDecoder, self).__init__()
+        self.name = self.__class__.__name__
         self.in_planes = 64
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
@@ -163,14 +161,10 @@ class ResNetImpBGDecoder(nn.Module):
             _out = torch.cat([out[:,:k,:,:] , out[:,(k+1):,:,:]],1)
             c_out[:,k,:,:] = -torch.logsumexp(_out, 1)
 
-        # Force the model to update the worst side: the explicit or the
-        # implicit estimate.
-        l_out = -torch.logsumexp(torch.stack([-c_out,-out],0),0)
-
         # Soft masking of negative pixels, to constrain the image-level
         # classification with an attention mechanism.
-        attn = torch.sigmoid(torch.logsumexp(l_out, 1, keepdim=True))
-        out = attn*l_out
+        attn = torch.sigmoid(torch.logsumexp(c_out, 1, keepdim=True))
+        out = attn*c_out
 
         return out, attn
 
@@ -183,8 +177,15 @@ class ResNetImpBGDecoder(nn.Module):
 def ResNet18ImpBG(**kwargs):
     return ResNetImpBG(BasicBlock, [2,2,2,2], **kwargs)
 
-def ResNet18ImpBGDecoder(**kwargs):
-    return ResNetImpBGDecoder(BasicBlock, [2,2,2,2], **kwargs)
+def TinyAttention18(**kwargs):
+    x = TinyAttention(BasicBlock, [2,2,2,2], **kwargs)
+    x.name = "{}18".format(x.name)
+    return x
+
+def TinyAttentionDecoder18(**kwargs):
+    x = TinyAttentionDecoder(BasicBlock, [2,2,2,2], **kwargs)
+    x.name = "{}18".format(x.name)
+    return x
 
 def ResNet34ImpBG(**kwargs):
     return ResNetImpBG(BasicBlock, [3,4,6,3], **kwargs)

@@ -1,21 +1,23 @@
 import torch
 from torch import nn
-from yapwrap.dataloaders import CIFAR10, SVHN, NoisyDataloader
+from yapwrap.dataloaders import *
 from yapwrap.experiments import OutOfDistribution
 from yapwrap.utils import OODEvaluator
 from yapwrap.utils.lr_scheduler import PolyLR
-from yapwrap.models import TinyResNet18, ComplementConstraint, TinyResNet50
-from torchvision.models import resnet18
+from yapwrap.models import TinyResNet18, ComplementConstraint, ComplementConstraintCombined, TinyResNet50, TinyAttention18, TinyAttentionDecoder18
 import inspect
 
 # Training Data
 dataloader = CIFAR10()
-ood_dataloaders = [SVHN(), NoisyDataloader(CIFAR10(), p=0.2), NoisyDataloader(CIFAR10(), p=0.5), NoisyDataloader(CIFAR10(), p=1.0)]
+ood_dataloaders = [SVHN(), CIFAR100(), TinyImageNet(), NoisyDataloader(CIFAR10(),p=1.0)]
 
 # Models to Compare
 trn = TinyResNet18(dataloader.num_classes)
 trn_cc = ComplementConstraint(TinyResNet18(dataloader.num_classes))
-models = [trn, trn_cc]
+trn_ccc = ComplementConstraintCombined(TinyResNet18(dataloader.num_classes))
+trn_a = TinyAttention18(num_classes = dataloader.num_classes)
+trn_ad = TinyAttentionDecoder18(num_classes = dataloader.num_classes)
+models = [trn_a, trn_ad, trn_ccc, trn, trn_cc]
 
 # Evaluation Criterion
 
