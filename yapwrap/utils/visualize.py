@@ -197,4 +197,4 @@ class HistPlot(Visualizer):
             self.lines.append(line)
 
         else:
-            raise Exception('data passed to add_plot must be numpy ndarray with dimension 2xN')
+            raise Exception('data passed to add_plot must be numpy ndarray with dimension 1xN')

@@ -20,7 +20,7 @@ lp = visualize.LinePlot(title='My Plot',
                         legend=True,
                         legend_pos=1,
                         grid=True)
-lp.add_plot(x, labels='Data1')
+lp.add_plot(x, labels='Data1', linewidth=3)
 lp.add_plot(y, labels='Data2')
 lp.add_plot(z, labels='Data3', linestyle='--', linewidth=1)
 img1 = lp.get_image()
@@ -39,7 +39,7 @@ hp = visualize.HistPlot(title='My Plot',
                         grid=True)
 hp.add_plot(d1, labels='D1', rwidth=0.8)
 hp.add_plot(d2, labels='D2', rwidth=0.8)
-hp.add_plot(d3, labels='D2', rwidth=0.8)
+hp.add_plot(d3, labels='D3', rwidth=0.8)
 img2 = hp.get_image()
 
 # Show result
