@@ -28,18 +28,6 @@ class PolyLR(torch.optim.lr_scheduler._LRScheduler):
         beta (float): Multiplicative factor of learning rate decay.
             Default: 0.9.
         last_epoch (int): The index of last epoch. Default: -1.
-
-    Example:
-        >>> # Assuming optimizer uses lr = 0.05 for all groups
-        >>> # lr = 0.05     if epoch < 30
-        >>> # lr = 0.005    if 30 <= epoch < 60
-        >>> # lr = 0.0005   if 60 <= epoch < 90
-        >>> # ...
-        >>> scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
-        >>> for epoch in range(100):
-        >>>     scheduler.step()
-        >>>     train(...)
-        >>>     validate(...)
     """
 
     def __init__(self, optimizer, T_max, beta=0.9, last_epoch=-1):

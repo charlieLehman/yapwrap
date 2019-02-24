@@ -28,6 +28,10 @@ class Noise(Dataloader):
         else:
             h = w = size
         dummy_targets = torch.ones(dataset_len)
+        '''
+        Original source of noise formulation
+        from https://github.com/hendrycks/outlier-exposure
+        '''
         if noise_type=='Gaussian':
             noise_data = torch.from_numpy(np.float32(np.clip(
                 np.random.normal(size=(dataset_len, 3, h, w), scale=0.5), -1, 1)))

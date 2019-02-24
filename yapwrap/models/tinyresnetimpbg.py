@@ -97,7 +97,7 @@ class TinyAttention(nn.Module):
             c_out[:,k,:,:] = -torch.logsumexp(_out, 1)
 
         # Where is the model looking?
-        attn = torch.sigmoid(torch.logsumexp(out, 1, keepdim=True))
+        attn = torch.sigmoid(torch.logsumexp(c_out, 1, keepdim=True))
         out = attn*c_out
 
         return out, attn

@@ -34,7 +34,7 @@ class OODEvaluator(ImageClassificationEvaluator):
         super(OODEvaluator, self).__init__(num_classes)
         self.id_state = (None, None)
         self.ood_state = (None, None)
-        self.state.update({'OOD':{'FPRatRecall':{}, 'AUROC':{}, 'AUPR':{}}})
+        self.state.update({'OOD':{'FPR95':{}, 'AUROC':{}, 'AUPR':{}}})
 
     def update(self, **kwargs):
         super(OODEvaluator, self).update(**kwargs)
@@ -64,8 +64,8 @@ class OODEvaluator(ImageClassificationEvaluator):
         ood_confidence, ood_target = self.ood_state
         confidence = np.concatenate((id_confidence, ood_confidence))
         target = np.concatenate((id_target, ood_target))
-        name = '{}/FPRatRecall'.format(dataloader_name)
-        self.state['OOD']['FPRatRecall'].update({name:fpr_and_fdr_at_recall(target, confidence, recall_level=0.95)})
+        name = '{}/FPR95'.format(dataloader_name)
+        self.state['OOD']['FPR95'].update({name:fpr_and_fdr_at_recall(target, confidence, recall_level=0.95)})
         name = '{}/AUROC'.format(dataloader_name)
         self.state['OOD']['AUROC'].update({name:roc_auc_score(target, confidence)})
         name = '{}/AUPR'.format(dataloader_name)
@@ -79,6 +79,10 @@ class OODEvaluator(ImageClassificationEvaluator):
 
 
 def fpr_and_fdr_at_recall(y_true, y_score, recall_level, pos_label=None):
+    '''
+    Original source from https://github.com/hendrycks/outlier-exposure
+    '''
+    
     classes = np.unique(y_true)
     if (pos_label is None and
             not (np.array_equal(classes, [0, 1]) or
