@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from matplotlib import colors
+import numpy as np
 
 __all__ = ['TinyAttention18', 'TinyAttentionDecoder18']
 
@@ -69,7 +71,16 @@ class TinyAttention(nn.Module):
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, num_classes, num_blocks[3], stride=2)
+        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
+        self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
+        self.attn = nn.Sequential(
+            nn.ReLU(),
+            nn.Conv2d(512, 1, kernel_size=1, bias=False),
+            nn.Sigmoid()
+        )
+        self.classify = nn.Sequential(
+            nn.ReLU(),
+            nn.Conv2d(512, num_classes, kernel_size=1, bias=False))
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes
 
@@ -89,23 +100,35 @@ class TinyAttention(nn.Module):
         out = self.layer3(out)
         out = self.layer4(out)
         out = self.upsample(out, s)
-
-        # Extract the negative max complement logits
-        c_out = torch.zeros_like(out)
-        for k in range(self.num_classes):
-            _out = torch.cat([out[:,:k,:,:] , out[:,(k+1):,:,:]],1)
-            c_out[:,k,:,:] = -torch.logsumexp(_out, 1)
-
-        # Where is the model looking?
-        attn = torch.sigmoid(torch.logsumexp(c_out, 1, keepdim=True))
-        out = attn*c_out
-
+        attn = self.attn(out)
+        out = self.classify(out)*attn
         return out, attn
+
+    def visualize(self, x):
+        out, attn = self.pixelwise_classification(x)
+        segviz = self.overlay_segmentation(x, out)
+        x -= x.min()
+        x /= x.max()
+        return {'Input':x,
+                'Segmentation':segviz,
+                'Attention':attn}
+
+    def overlay_segmentation(self, x, out):
+        conf, pred = F.softmax(out,1).max(1)
+        hue = (pred.float() + 0.5)/self.num_classes
+        gs_im = x.mean(1)
+        gs_im -= gs_im.min()
+        gs_im /= gs_im.max()
+        hsv_ims = torch.stack((hue, conf, gs_im),-1).cpu().detach().numpy()
+        rgb_ims = []
+        for x in hsv_ims:
+            rgb_ims.append(colors.hsv_to_rgb(x))
+        return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
+
 
     def forward(self, x):
         out, attn = self.pixelwise_classification(x)
-        out = out.sum((-2,-1))/attn.sum((-2,-1))
-        return out
+        return out.sum((-2,-1))/attn.sum((-2,-1))
 
 
 class TinyAttentionDecoder(nn.Module):
@@ -154,19 +177,32 @@ class TinyAttentionDecoder(nn.Module):
         out = torch.cat([out,low], 1)
         out = self.decoder(out)
 
-        # Extract the negative max complement logits, which can be
-        # referred to as the implicit estimate
-        c_out = torch.zeros_like(out)
-        for k in range(self.num_classes):
-            _out = torch.cat([out[:,:k,:,:] , out[:,(k+1):,:,:]],1)
-            c_out[:,k,:,:] = -torch.logsumexp(_out, 1)
-
-        # Soft masking of negative pixels, to constrain the image-level
-        # classification with an attention mechanism.
-        attn = torch.sigmoid(torch.logsumexp(c_out, 1, keepdim=True))
-        out = attn*c_out
-
         return out, attn
+
+    def detect_ood(self, x):
+        _, attn = self.pixelwise_classification(x)
+        return attn.mean((-2,-1))
+
+    def visualize(self, x):
+        out, attn = self.pixelwise_classification(x)
+        segviz = self.overlay_segmentation(x, out)
+        x -= x.min()
+        x /= x.max()
+        return {'Input':x,
+                'Segmentation':segviz,
+                'Attention':attn}
+
+    def overlay_segmentation(self, x, out):
+        conf, pred = F.softmax(out,1).max(1)
+        hue = (pred.float() + 0.5)/self.num_classes
+        gs_im = x.mean(1)
+        gs_im -= gs_im.min()
+        gs_im /= gs_im.max()
+        hsv_ims = torch.stack((hue, conf, gs_im),-1).cpu().detach().numpy()
+        rgb_ims = []
+        for x in hsv_ims:
+            rgb_ims.append(colors.hsv_to_rgb(x))
+        return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
 
     def forward(self, x):
         out, attn = self.pixelwise_classification(x)

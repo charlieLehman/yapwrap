@@ -18,16 +18,18 @@ trn = TinyResNet18(dataloader.num_classes)
 trn_cc = ComplementConstraint(TinyResNet18(dataloader.num_classes))
 trn_ccc = ComplementConstraintCombined(TinyResNet18(dataloader.num_classes))
 trn_a = TinyAttention18(num_classes=dataloader.num_classes)
+trn_ac = ComplementConstraint(TinyAttention18(num_classes=dataloader.num_classes))
 # models = [trn, trn_ccc, trn_cc]
-models = [trn_a]
+models = [trn]
 
 # Run an experiment for each model
-num_epochs = 300
+num_epochs = 100
 lr = 0.1
 for model in models:
     # Optimization Parameters
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=1e-4, nesterov=False)
-    lr_scheduler = PolyLR(optimizer, num_epochs)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=5e-4, nesterov=True)
+    # lr_scheduler = PolyLR(optimizer, num_epochs)
+    lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, num_epochs,1e-6/lr)
     criterion = nn.CrossEntropyLoss()
 
     # Evaluation Criterion

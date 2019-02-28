@@ -55,6 +55,9 @@ class ImageClassification(Experiment):
                 target = target.cuda()
             output = self._step(input, target)
             tbar.set_description(self.evaluator.tbar_desc(self.saver.epoch))
+        viz = getattr(self.model.module,'visualize', None)
+        if callable(viz):
+            self.logger.summarize_images(viz(input), self.dataloader.name, self.evaluator.step)
 
     def train(self, num_epochs, validate=True):
         train_iter = self.dataloader.train_iter()

@@ -37,7 +37,11 @@ class Logger(object):
         state = evaluator.state[evaluator.metric_set]
         self.process_state(state, evaluator.metric_set, evaluator.step)
 
-
-    def visualize_image(self):
-        raise NotImplementedError
-
+    def summarize_images(self, images, name, step):
+        for k, v in images.items():
+            if type(v) is torch.Tensor:
+                s = v.shape
+                if len(s)==4:
+                    v = make_grid(v, int(np.sqrt(s[0])))
+                summary_name = os.path.join(name, k)
+                self.writer.add_image(summary_name, v, step)

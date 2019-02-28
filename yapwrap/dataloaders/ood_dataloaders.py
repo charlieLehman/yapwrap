@@ -7,7 +7,7 @@ import torch
 import os
 
 class OOD_CIFAR10(CIFAR10):
-    def __init__(self, root='./data', size=32, batch_sizes={'train':128,'test':100, 'ood':100}, transforms={'train':None, 'test':None, 'ood':None}, dataset_len=2000):
+    def __init__(self, root='./data', size=32, batch_sizes={'train':128,'test':100, 'ood':100}, transforms={'train':None, 'test':None, 'ood':None}, dataset_len=2500):
         super(OOD_CIFAR10, self).__init__(root, size, batch_sizes, transforms)
         self.ood_batch_size = batch_sizes['ood']
         if transforms['ood'] is None:

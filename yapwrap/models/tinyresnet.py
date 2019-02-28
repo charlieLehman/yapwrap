@@ -8,6 +8,8 @@ Reference:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from yapwrap.utils import *
+from matplotlib import pyplot as plt
 
 __all__ = ['TinyResNet', 'TinyResNet18', 'TinyResNet50']
 
@@ -99,6 +101,21 @@ class TinyResNet(nn.Module):
         out = self.linear(out)
         return out
 
+    def visualize(self, x):
+        viz_dict = {}
+        out = self.forward(x)
+        hp = HistPlot(title='Model Logit Response',
+                      xlabel='Logit',
+                      ylabel='Frequency',
+                      legend=True,
+                      legend_pos=1,
+                      grid=True)
+
+        for n in range(out.size(1)):
+            _x = out[:,n].detach().cpu().numpy()
+            hp.add_plot(_x, labels=n, rwidth=0.3)
+        viz_dict.update({'LogitResponse':torch.from_numpy(hp.get_image()).permute(2,0,1)})
+        return viz_dict
     def __repr__(self):
         d = {'name':self.name,
              'num_classes':self.num_classes,

@@ -45,10 +45,17 @@ class OutOfDistribution(ImageClassification):
                 if self.on_cuda:
                     input = input.cuda()
                     target = target.cuda()
-                output = self.model(input)
+                ood = getattr(self.model.module,'detect_ood', None)
+                if callable(ood):
+                    output = ood(input)
+                else:
+                    output = self.model(input)
                 self.evaluator.ood_update(output, target)
                 tbar.set_description(data_iter.name)
             self.evaluator.ood_run(name)
+            viz = getattr(self.model.module,'visualize', None)
+            if callable(viz):
+                self.logger.summarize_images(viz(input), name, self.evaluator.step)
         self.logger.summarize_scalars(self.evaluator)
         self.evaluator.metric_set = _metric_set
 

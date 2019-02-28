@@ -41,7 +41,7 @@ class OODEvaluator(ImageClassificationEvaluator):
         output, target = kwargs['metrics']
         confidence = torch.softmax(output,1).max(1)[0]
         if self.metric_set == 'validation' and 'metrics' in kwargs:
-            target = torch.ones_like(target)
+            target = torch.zeros_like(target)
             if any(x is None for x in self.id_state):
                 self.id_state = (to_np(confidence), to_np(target))
             else:
@@ -50,7 +50,7 @@ class OODEvaluator(ImageClassificationEvaluator):
                                  np.concatenate((_target,to_np(target))))
 
     def ood_update(self, output, target):
-        target = torch.zeros_like(target)
+        target = torch.ones_like(target)
         confidence = torch.softmax(output,1).max(1)[0]
         if any( x is None for x in self.ood_state):
             self.ood_state = (to_np(confidence), to_np(target))
@@ -63,13 +63,14 @@ class OODEvaluator(ImageClassificationEvaluator):
         id_confidence, id_target = self.id_state
         ood_confidence, ood_target = self.ood_state
         confidence = np.concatenate((id_confidence, ood_confidence))
+        ood_conf = 1 - confidence
         target = np.concatenate((id_target, ood_target))
         name = '{}/FPR95'.format(dataloader_name)
-        self.state['OOD']['FPR95'].update({name:fpr_and_fdr_at_recall(target, confidence, recall_level=0.95)})
+        self.state['OOD']['FPR95'].update({name:fpr_and_fdr_at_recall(target, ood_conf, recall_level=0.95)})
         name = '{}/AUROC'.format(dataloader_name)
-        self.state['OOD']['AUROC'].update({name:roc_auc_score(target, confidence)})
+        self.state['OOD']['AUROC'].update({name:roc_auc_score(target, ood_conf)})
         name = '{}/AUPR'.format(dataloader_name)
-        self.state['OOD']['AUPR'].update({name:average_precision_score(target, confidence)})
+        self.state['OOD']['AUPR'].update({name:average_precision_score(target, ood_conf)})
         self.ood_state = (None, None)
 
     def reset(self):
@@ -125,6 +126,9 @@ def fpr_and_fdr_at_recall(y_true, y_score, recall_level, pos_label=None):
     return fps[cutoff] / (np.sum(np.logical_not(y_true)))   # , fps[cutoff]/(fps[cutoff] + tps[cutoff])
 
 def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
+    '''
+    Original source from https://github.com/hendrycks/outlier-exposure
+    '''
     """Use high precision for cumsum and check that final value matches sum
     Parameters
     ----------
