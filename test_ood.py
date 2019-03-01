@@ -20,7 +20,7 @@ trn_ccc = ComplementConstraintCombined(TinyResNet18(dataloader.num_classes))
 trn_a = TinyAttention18(num_classes=dataloader.num_classes)
 trn_ac = ComplementConstraint(TinyAttention18(num_classes=dataloader.num_classes))
 # models = [trn, trn_ccc, trn_cc]
-models = [trn]
+models = [trn_ac, trn_cc]
 
 # Run an experiment for each model
 num_epochs = 100
