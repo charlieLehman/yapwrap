@@ -130,7 +130,6 @@ class TinyAttention(nn.Module):
         out, attn = self.pixelwise_classification(x)
         return out.sum((-2,-1))/attn.sum((-2,-1))
 
-
 class TinySegmentation(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
         super(TinyAttention, self).__init__()
