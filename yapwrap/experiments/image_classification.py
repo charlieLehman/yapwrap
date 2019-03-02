@@ -26,7 +26,7 @@ class ImageClassification(Experiment):
     """
     def __init__(self, **kwargs):
         super(ImageClassification, self).__init__(**kwargs)
-        if not self.resume:
+        if not self.resumed:
             self.saver = yapwrap.utils.BestMetricSaver('validation', 'Accuracy', self.experiment_name, self.experiment_dir)
             self.lr_scheduler = kwargs['lr_scheduler']
 
