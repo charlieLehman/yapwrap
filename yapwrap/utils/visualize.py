@@ -24,10 +24,24 @@ class Visualizer(object):
         raise NotImplementedError
 
     def get_image(self):
+        self._draw_plot()
         self.canvas.draw()
         w, h = self.figure.get_size_inches() * self.figure.get_dpi()
         img = np.fromstring(self.canvas.tostring_rgb(),  dtype='uint8').reshape(int(h), int(w), 3)
         return img
+
+    def update_plot(self, data, label, **kwargs):
+        if label not in self._data_dict:
+            raise Exception("Attempting to update data with label %s which not present in plot history. Make sure label name is correct" %label)
+        else:
+            self._data_dict[label]['data'] = data
+            for k in kwargs:
+                if k not in self._data_dict[label]:
+                    raise Exception("%s not a valid option" %k)
+                self._data_dict[label][k] = kwargs[k]
+
+    def close(self):
+        plt.close(self.figure)
 
 class LinePlot(Visualizer):
     def __init__(self, **kwargs):
@@ -39,6 +53,7 @@ class LinePlot(Visualizer):
                        [148, 103, 189], [197, 176, 213], [140, 86, 75], [196, 156, 148],
                        [227, 119, 194], [247, 182, 210], [127, 127, 127], [199, 199, 199],
                        [188, 189, 34], [219, 219, 141], [23, 190, 207], [158, 218, 229]], dtype=np.float32)
+
         # Normalize colors for matplotlib
         self.colors /= np.array([255.0, 255.0, 255.0])
         self._plot_count = 0
@@ -63,6 +78,7 @@ class LinePlot(Visualizer):
         self.labels = []
         self.lines = []
 
+        self._data_dict = {}
 
         if self.axisbelow:
             self.axs.set_axisbelow(True)
@@ -79,33 +95,49 @@ class LinePlot(Visualizer):
         if self.ylabel:
             self.axs.set_ylabel(self.ylabel)
 
-    def add_plot(self, data, color=None, labels=None, linestyle=None, linewidth=None):
-        if linestyle is None:
-            linestyle = self.linestyle
 
+    def add_plot(self, data, color=None, label=None, linestyle=None, linewidth=None):
+        if not isinstance(data, np.ndarray):
+            raise Exception('data passed to add_plot must be numpy ndarray with dimension 2xN')
         if linewidth is None:
             linewidth = self.linewidth
-
+        if linestyle is None:
+            linestyle = self.linestyle
         if color is None:
             color = self.colors[self._plot_count%self.colors.shape[0], :]
+        if label is None:
+            label = 'Data%d' %(self._plot_count)
 
+        plot_info = {}
+        plot_info['data'] = data
+        plot_info['linewidth'] = linewidth
+        plot_info['linestyle'] = linestyle
+        plot_info['color'] = color
+        plot_info['label'] =  label
+        self._data_dict[label] = plot_info
         self._plot_count += 1
-        if isinstance(data, np.ndarray):
+
+    def _draw_plot(self):
+        for label in self._data_dict:
+            data = self._data_dict[label].pop('data', None)
+            if data is None:
+                raise Exception('Data has to be added before drawing')
+            color = self._data_dict[label]['color']
+            linewidth = self._data_dict[label]['linewidth']
+            linestyle = self._data_dict[label]['linestyle']
+
             assert data.shape[0] == 2
-            line = self.axs.plot(data[0, :], data[1, :],
+            plot = self.axs.plot(data[0, :], data[1, :],
                           color=color,
                           linewidth=linewidth,
                           linestyle=linestyle,
-                          label=labels)
+                          label=label)
             if self.legend:
                 self.axs.legend(loc=self.legend_pos)
             if self.grid:
                 self.axs.grid(linestyle=self.grid_style, linewidth=self.grid_width)
-            self.labels.append(labels)
-            self.lines.append(line)
-
-        else:
-            raise Exception('data passed to add_plot must be numpy ndarray with dimension 2xN')
+            self.labels.append(label)
+            self.lines.append(plot)
 
 class HistPlot(Visualizer):
     def __init__(self, **kwargs):
@@ -122,6 +154,7 @@ class HistPlot(Visualizer):
         self._plot_count = 0
         self.figure, self.axs = plt.subplots()
         self.canvas = FigureCanvas(self.figure)
+        self._data_dict = {}
 
         # Figure Attributes
         self.linewidth = kwargs.get('linewidth', 2.0)
@@ -135,6 +168,7 @@ class HistPlot(Visualizer):
         self.grid = kwargs.get('show_grid', True)
         self.grid_style = kwargs.get('grid_style', '--')
         self.grid_width = kwargs.get('grid_width', 0.5)
+        self.alpha = kwargs.get('alpha', 1)
         self.labels = []
         self.lines = []
 
@@ -142,7 +176,7 @@ class HistPlot(Visualizer):
         self.histtype = kwargs.get('histtype', 'bar')
         self.align = kwargs.get('align', 'mid')
         self.orientation = kwargs.get('orientation', 'vertical')
-        self.rwidth = kwargs.get('rwidth', None)
+        self.rwidth = kwargs.get('rwidth', 1)
         self.bins = kwargs.get('bins', 'auto')
         self.range = kwargs.get('range', None)
 
@@ -162,13 +196,11 @@ class HistPlot(Visualizer):
         if self.ylabel:
             self.axs.set_ylabel(self.ylabel)
 
-    def add_plot(self, data, color=None, labels=None, rwidth=None, orientation=None, histtype=None, bins=None, align=None, range=None):
-        if rwidth is None:
-            rwidth = self.rwidth
+    def add_plot(self, data, color=None, label=None, orientation=None, bins=None, align=None, range=None):
+        if not isinstance(data, np.ndarray):
+            raise Exception('data passed to add_plot must be numpy ndarray with dimension 1xN')
         if orientation is None:
             orientation = self.orientation
-        if histtype is None:
-            histtype = self.histtype
         if range is None:
             range = self.range
         if bins is None:
@@ -177,24 +209,43 @@ class HistPlot(Visualizer):
             align = self.align
         if color is None:
             color = color = self.colors[self._plot_count%self.colors.shape[0], :]
+        if label is None:
+            label = 'Data%d' %(self._plot_count)
 
+        plot_info = {}
+        plot_info['data'] = data
+        plot_info['color'] = color
+        plot_info['label'] =  label
+        self._data_dict[label] = plot_info
         self._plot_count += 1
-        if isinstance(data, np.ndarray):
-            line = self.axs.hist(data,
-                                 color=color,
-                                 rwidth=rwidth,
-                                 orientation=orientation,
-                                 histtype=histtype,
-                                 range=range,
-                                 bins=bins,
-                                 align=align,
-                                 label=labels)
-            if self.legend:
-                self.axs.legend(loc=self.legend_pos)
-            if self.grid:
-                self.axs.grid(linestyle=self.grid_style, linewidth=self.grid_width)
-            self.labels.append(labels)
-            self.lines.append(line)
 
-        else:
-            raise Exception('data passed to add_plot must be numpy ndarray with dimension 1xN')
+    def _draw_plot(self):
+        orientation = self.orientation
+        range = self.range
+        align = self.align
+        bins = self.bins
+        histtype = self.histtype
+        rwidth = self.rwidth
+        data = []
+        color = []
+        labels = []
+        for label in self._data_dict:
+            data.append(self._data_dict[label].pop('data', None))
+            color.append(np.append(self._data_dict[label]['color'], self.alpha))
+            labels.append(label)
+
+        plot = self.axs.hist(data,
+                             color=color,
+                             rwidth=rwidth,
+                             orientation=orientation,
+                             histtype=histtype,
+                             range=range,
+                             bins=bins,
+                             align=align,
+                             label=labels)
+        if self.legend:
+            self.axs.legend(loc=self.legend_pos)
+        if self.grid:
+            self.axs.grid(linestyle=self.grid_style, linewidth=self.grid_width)
+        self.labels.append(label)
+        self.lines.append(plot)
