@@ -16,11 +16,10 @@ class ComplementConstraint(nn.Module):
         out = self.model(input)
         num_classes = out.size(1)
         c_out = torch.zeros_like(out)
-        e_out = torch.exp(out)
+
         for k in range(num_classes):
-            _out = torch.cat([e_out[:,:k] , e_out[:,(k+1):]],1)
-            es_out = _out.sum(1)
-            c_out[:,k] = (1-es_out/(es_out+1))*out[:,k]
+            _out = torch.cat([out[:,:k] , out[:,(k+1):]],1)
+            c_out[:,k] = -torch.logsumexp(_out, 1)
         return c_out
 
     def visualize(self, x):

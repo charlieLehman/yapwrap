@@ -36,7 +36,7 @@ class OutOfDistribution(ImageClassification):
         self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in ood_dataloaders]
         self.experiment_name = '{}_OOD'.format(self.experiment_name)
 
-    def ood_run(self):
+    def _ood_run(self):
         _metric_set = self.evaluator.metric_set
         self.evaluator.metric_set = 'OOD'
         for name, data_iter in self.ood_iters:
@@ -71,10 +71,14 @@ class OutOfDistribution(ImageClassification):
 
             self.model.eval()
             self._epoch(val_iter)
-            self.ood_run()
+            self._ood_run()
             self.saver.epoch += 1
 
             self.logger.summarize_scalars(self.evaluator)
             self.saver.model_state_dict = self._get_model_state()
             self.saver.optimizer_state_dict = self.optimizer.state_dict()
             self.saver.save(metric_evaluator = self.evaluator)
+
+    def test(self):
+        super(OutOfDistribution, self).test()
+        self._ood_run()

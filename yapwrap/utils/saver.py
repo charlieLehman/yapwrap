@@ -29,28 +29,44 @@ class Saver(object):
         self.epoch = 0
         self.model_state_dict = None
         self.optimizer_state_dict = None
+        self.exp_path = os.path.join(self.experiment_dir, 'checkpoint.pth.tar')
+        self.config_path = os.path.join(self.experiment_dir, 'experiment_config.json')
 
     def save(self, *args):
         print('======Saving Checkpoint======')
-        filename = os.path.join(self.experiment_dir, 'checkpoint.pth.tar')
         state = {'loss':self.loss,
                  'step':self.step,
                  'epoch':self.epoch,
                  'model_state_dict':self.model_state_dict,
                  'optimizer_state_dict':self.optimizer_state_dict}
-        torch.save(state, filename)
+        torch.save(state, self.exp_path)
 
-    def experiment_config(self, **kwargs):
+    def save_config(self, **kwargs):
         config = {}
         for k, v in kwargs.items():
             config.update({k:str(v)})
         config.update({'_Experiment_Name_':self.experiment_name})
-        filename = os.path.join(self.experiment_dir, 'experiment_config.json')
-        with open(filename, 'w') as f:
+        with open(self.config_path, 'w') as f:
             json.dump(config, f, sort_keys=True, indent=4)
 
+    def load_config(self):
+        with open(self.config_path, 'r') as f:
+            config = json.load(f)
+        print('Loading Config from {}'.format(self.config_path))
+        return config
+
+    def resume(self):
+        state = torch.load(self.exp_path)
+        self.loss = state['loss']
+        self.step = state['step']
+        self.epoch = state['epoch']
+        self.model_state_dict = state['model_state_dict']
+        self.optimizer_state_dict = state['optimizer_state_dict']
+        print('Resuming Experiment state from {}'.format(self.exp_path))
+        return state
+
 class BestMetricSaver(Saver):
-    def __init__(self, metric_set, metric_name, experiment_name, experiment_dir, criterion=np.greater_equal):
+    def __init__(self, metric_set, metric_name, experiment_name, experiment_dir, criterion=np.greater_equal, resume=True):
         super(BestMetricSaver, self).__init__(experiment_name, experiment_dir)
         self.metric_set = metric_set
         self.metric_name = metric_name
@@ -63,16 +79,21 @@ class BestMetricSaver(Saver):
         if self.best_metric is None:
             self.best_metric = self.metric
         if self.criterion(self.metric, self.best_metric):
-            filename = os.path.join(self.experiment_dir, 'best_{}_checkpoint.pth.tar'.format(self.metric_name))
             state = {'loss':self.loss,
                     'step':self.step,
                     'epoch':self.epoch,
                     'model_state_dict':self.model_state_dict,
-                    'optimizer_state_dict':self.optimizer_state_dict}
-            state.update({self.metric_name:self.metric})
-            torch.save(state, filename)
+                     'optimizer_state_dict':self.optimizer_state_dict,
+                     self.metric_name:self.metric}
+            torch.save(state, self.exp_path)
             print('======Saved Best {} Checkpoint======'.format(self.metric_name))
             self.best_metric = self.metric
+
+    def resume(self):
+        state = super(BestMetricSaver, self).resume()
+        self.metric = state[self.metric_name]
+        self.best_metric = self.metric
+        return state
 
 class BestLossSaver(Saver):
     def __init__(self, experiment_name, criterion=np.less_equal, **kwargs):
