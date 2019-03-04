@@ -24,11 +24,15 @@ from tqdm import tqdm
 class ImageClassification(Experiment):
     """Image Classification Design Pattern
     """
-    def __init__(self, **kwargs):
-        super(ImageClassification, self).__init__(**kwargs)
+    def __init__(self, config, experiment_dir=None):
+        super(ImageClassification, self).__init__(config, experiment_dir)
+
         if not self.resumed:
-            self.saver = yapwrap.utils.BestMetricSaver('validation', 'Accuracy', self.experiment_name, self.experiment_dir)
-            self.lr_scheduler = kwargs['lr_scheduler']
+            self.lr_scheduler = self.config['lr_scheduler']['class'](optimizer=self.optimizer, **config['lr_scheduler']['params'])
+        else:
+            ## LR Scheduler
+            lr_scheduler_ = getattr(yapwrap.utils.lr_scheduler, self.config['lr_scheduler']['class'])
+            self.lr_scheduler = lr_scheduler_(optimizer=self.optimizer, **self.config['lr_scheduler']['params'])
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)

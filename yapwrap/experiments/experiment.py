@@ -28,39 +28,26 @@ import json
 from tqdm import tqdm
 
 class Experiment(object):
-    def __init__(self, **kwargs):
+    def __init__(self, config, experiment_dir=None):
+        self.config = config
         self.name = self.__class__.__name__
-        self.experiment_dir = kwargs.get('experiment_dir', None)
-        model, optimizer = self._maybe_resume(kwargs)
-        self.logger = yapwrap.utils.Logger(self.experiment_name, self.experiment_dir, **kwargs)
-        dataloader = kwargs['dataloader']
-        lr = kwargs['lr']
-        evaluator = kwargs['evaluator']
-        criterion = kwargs['criterion']
-        criterion.__str__ = re.sub('[()]','',criterion.__class__.__name__)
-        self.saver.save_config(**kwargs)
+        self.experiment_dir = experiment_dir
+        self._maybe_resume()
+        self.logger = yapwrap.utils.Logger(self.experiment_name, self.experiment_dir)
 
-        if not isinstance(model, nn.Module):
-            raise TypeError('{} is not a valid type nn.Module'.format(type(model).__name__))
-        self.model = model
-        if not isinstance(lr, (int, float)):
-            raise TypeError('{} is not a valid learning rate'.format(type(lr).__name__))
-        self.lr = lr
-        if not isinstance(optimizer, torch.optim.Optimizer):
-            raise TypeError('{} is not a valid optimizer'.format(type(optimizer).__name__))
-        self.optimizer = optimizer
-        if not isinstance(criterion, nn.modules.loss._Loss):
-            raise TypeError('{} is not a valid criterion'.format(type(criterion).__name__))
-        self.criterion = criterion
-        if not isinstance(evaluator, yapwrap.utils.Evaluator):
-            raise TypeError('{} is not a valid pytorchlab.Evaluator'.format(type(evaluator).__name__))
-        self.evaluator = evaluator
-        if not isinstance(dataloader, yapwrap.dataloaders.Dataloader):
-            raise TypeError('{} is not a valid type pytorchlab.Dataloader'.format(type(dataloader).__name__))
-        self.dataloader = dataloader
+        if not isinstance(self.model, nn.Module):
+            raise TypeError('{} is not a valid type nn.Module'.format(type(self.model).__name__))
+        if not isinstance(self.optimizer, torch.optim.Optimizer):
+            raise TypeError('{} is not a valid optimizer'.format(type(self.optimizer).__name__))
+        if not isinstance(self.criterion, nn.modules.loss._Loss):
+            raise TypeError('{} is not a valid criterion'.format(type(self.criterion).__name__))
+        if not isinstance(self.evaluator, yapwrap.utils.Evaluator):
+            raise TypeError('{} is not a valid yapwrap.utils.Evaluator'.format(type(self.evaluator).__name__))
+        if not isinstance(self.dataloader, yapwrap.dataloaders.Dataloader):
+            raise TypeError('{} is not a valid type yapwrap.utils.Dataloader'.format(type(self.dataloader).__name__))
         self.on_cuda = False
 
-    def _maybe_resume(self, kwargs):
+    def _maybe_resume(self):
         r = re.compile('(.*)run\/([^\/]*)\/experiment_(.*)')
         if  self.experiment_dir is not None:
             if not r.match(self.experiment_dir):
@@ -68,26 +55,56 @@ class Experiment(object):
                 raise NotExperimentError(message)
 
             self.experiment_name = self.experiment_dir.split('run/')[-1].split('/experiment')[0]
-            self.saver = yapwrap.utils.Saver(self.experiment_name, self.experiment_dir)
-            state = self.saver.resume()
-            kwargs = self.saver.load_config()
+            saver_ = yapwrap.utils.Saver(self.experiment_name, self.experiment_dir)
+            self.config = saver_.load_config()
 
-            model_kwargs = json.loads(kwargs['model'].replace("\'","\""))
-            model_ = getattr(yapwrap.models, model_kwargs['name'])
-            print(model_kwargs)
-            model = model_(**model_kwargs)
-            optimizer = importlib.import_module(kwargs['optimizer'])
-            model.load_state_dict(state['model_state_dict'])
-            optimizer.load_state_dict(state['optimizer_state_dict'])
+            ## Saver
+            saver_ = getattr(yapwrap.utils, self.config['saver']['class'])
+            self.saver = saver_(**self.config['saver']['params'], experiment_name=self.experiment_name, experiment_dir=self.experiment_dir)
+            state = self.saver.resume()
+
+            ## Model
+            model_ = getattr(yapwrap.models, self.config['model']['class'])
+            self.config['model']['class'] = model_
+            self.model = model_(**self.config['model']['params'])
+            self.model.load_state_dict(state['model_state_dict'])
+
+            ## Dataloader
+            dataloader_ = getattr(yapwrap.dataloaders, self.config['dataloader']['class'])
+            self.config['dataloader']['class'] = dataloader_
+            self.dataloader = dataloader_(**self.config['dataloader']['params'])
+
+            ## Optimizer
+            optimizer_ = getattr(torch.optim, self.config['optimizer']['class'])
+            self.config['optimizer']['class'] = optimizer_
+            self.optimizer = optimizer_(params=self.model.parameters(),**self.config['optimizer']['params'])
+            self.optimizer.load_state_dict(state_dict=state['optimizer_state_dict'])
+
+            ## Criterion
+            criterion_ = getattr(torch.nn, self.config['criterion']['class'])
+            self.config['criterion']['class'] = criterion_
+            self.criterion = criterion_(**self.config['criterion']['params'])
+
+            ## Evaluator
+            evaluator_ = getattr(yapwrap.utils, self.config['evaluator']['class'])
+            self.config['evaluator']['class'] = evaluator_
+            self.evaluator = evaluator_(num_classes=self.dataloader.num_classes, **self.config['evaluator']['params'])
+
             self.resumed = True
         else:
-            model = kwargs['model']
-            optimizer = kwargs['optimizer']
-            self.experiment_name = '{}_{}'.format(model.name, kwargs['dataloader'].name)
+            self.dataloader = self.config['dataloader']['class'](**self.config['dataloader']['params'])
+            model_config = self.config['model']['params']
+            model_config.update({'num_classes':self.dataloader.num_classes})
+            self.model = self.config['model']['class'](**model_config)
+            self.optimizer = self.config['optimizer']['class'](self.model.parameters(), **self.config['optimizer']['params'])
+            self.experiment_name = '{}_{}'.format(self.model.name, self.dataloader.name)
             self.experiment_dir = self._experiment_dir(self.experiment_name)
-            self.saver = yapwrap.utils.Saver(self.experiment_name, self.experiment_dir)
+            saver_ = self.config['saver']['class']
+            self.saver = saver_(**self.config['saver']['params'], experiment_name=self.experiment_name, experiment_dir=self.experiment_dir)
+            self.evaluator = self.config['evaluator']['class'](num_classes=self.dataloader.num_classes, **self.config['evaluator']['params'])
+            self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])
+            self.saver.save_config(self.config)
             self.resumed = False
-        return model, optimizer
 
     @staticmethod
     def _experiment_dir(experiment_name):
@@ -111,6 +128,7 @@ class Experiment(object):
     def cuda(self):
         self.on_cuda = True
         self.model = nn.DataParallel(self.model).cuda()
+        self.optimizer = self.config['optimizer']['class'](self.model.parameters(), **self.config['optimizer']['params'])
         return self
 
     def __str__(self):

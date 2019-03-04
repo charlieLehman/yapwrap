@@ -18,6 +18,8 @@ from torch import nn
 import numpy as np
 import json
 import os
+import re
+import copy
 
 class Saver(object):
     def __init__(self, experiment_name, experiment_dir):
@@ -41,13 +43,13 @@ class Saver(object):
                  'optimizer_state_dict':self.optimizer_state_dict}
         torch.save(state, self.exp_path)
 
-    def save_config(self, **kwargs):
-        config = {}
-        for k, v in kwargs.items():
-            config.update({k:str(v)})
-        config.update({'_Experiment_Name_':self.experiment_name})
+    def save_config(self, config):
+        _config = copy.deepcopy(config)
+        for k,v in config.items():
+            if (isinstance(v, dict) and not isinstance(v,str)):
+                _config[k]['class'] = config[k]['class'].__name__
         with open(self.config_path, 'w') as f:
-            json.dump(config, f, sort_keys=True, indent=4)
+            json.dump(_config, f, sort_keys=True, indent=4)
 
     def load_config(self):
         with open(self.config_path, 'r') as f:

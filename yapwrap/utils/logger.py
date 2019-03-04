@@ -20,7 +20,7 @@ from tensorboardX import SummaryWriter
 import numpy as np
 
 class Logger(object):
-    def __init__(self, experiment_name, experiment_dir, **kwargs):
+    def __init__(self, experiment_name, experiment_dir):
         self.experiment_name = experiment_name
         self.experiment_dir = experiment_dir
         self.writer = SummaryWriter(experiment_dir)

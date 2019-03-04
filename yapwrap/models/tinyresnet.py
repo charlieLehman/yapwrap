@@ -67,7 +67,7 @@ class Bottleneck(nn.Module):
 
 
 class TinyResNet(nn.Module):
-    def __init__(self, block=None, num_blocks=None, num_classes=10, name=None):
+    def __init__(self, block, num_blocks, num_classes=10):
         super(TinyResNet, self).__init__()
         self.name = self.__class__.__name__
         self.in_planes = 64
@@ -123,8 +123,9 @@ class TinyResNet(nn.Module):
         return str(d)
 
 
-def TinyResNet18(num_classes):
-    x = TinyResNet(BasicBlock, [2,2,2,2], num_classes)
+def TinyResNet18(**kwargs):
+    x = TinyResNet(BasicBlock, [2,2,2,2], kwargs['num_classes'])
+    x.name = "{}18".format(x.name)
     return x
 
 def TinyResNet34(num_classes):
