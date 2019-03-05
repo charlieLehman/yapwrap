@@ -76,12 +76,12 @@ class TinyAttention(nn.Module):
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.attn = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(512, 1, kernel_size=1, bias=False),
+            nn.Conv2d(512*block.expansion, 1, kernel_size=1, bias=False),
             nn.Sigmoid()
         )
         self.classify = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(512, num_classes, kernel_size=1, bias=False))
+            nn.Conv2d(512*block.expansion, num_classes, kernel_size=1, bias=False))
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes
 
