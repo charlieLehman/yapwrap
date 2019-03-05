@@ -12,11 +12,10 @@ class ComplementConstraint(nn.Module):
         self.name = '{}_ComplementConstraint'.format(model.name)
 
     def cc(self, input):
-        num_classes = out.size(1)
-        c_out = torch.zeros_like(out)
-
+        num_classes = input.size(1)
+        c_out = torch.zeros_like(input)
         for k in range(num_classes):
-            _out = torch.cat([out[:,:k] , out[:,(k+1):]],1)
+            _out = torch.cat([input[:,:k] , input[:,(k+1):]],1)
             c_out[:,k] = -torch.logsumexp(_out, 1)
         return c_out
 
@@ -49,11 +48,11 @@ class ComplementConstraint(nn.Module):
 
         for n in range(mout.size(1)):
             _x = mout[:,n].detach().cpu().numpy()
-            mhp.add_plot(_x, label=n, rwidth=0.3)
+            mhp.add_plot(_x, label=n)
         viz_dict.update({'LogitResponse':torch.from_numpy(mhp.get_image()).permute(2,0,1)})
         for n in range(cout.size(1)):
             _x = cout[:,n].detach().cpu().numpy()
-            cchp.add_plot(_x, label=n, rwidth=0.3)
+            cchp.add_plot(_x, label=n)
         viz_dict.update({'CompConstLogitResponse':torch.from_numpy(cchp.get_image()).permute(2,0,1)})
         mhp.close()
         cchp.close()

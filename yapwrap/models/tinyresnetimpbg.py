@@ -5,7 +5,7 @@ from matplotlib import colors
 from yapwrap.utils import HistPlot
 import numpy as np
 
-__all__ = ['TinyAttention18', 'TinyAttentionDecoder18']
+__all__ = ['TinyAttention18', 'TinyAttention34', 'TinyAttention50', 'TinyAttention101', 'TinyAttention152']
 
 
 class BasicBlock(nn.Module):
@@ -288,13 +288,28 @@ class TinyAttentionDecoder(nn.Module):
         return out
 
 
-def ResNet18ImpBG(**kwargs):
-    return ResNetImpBG(BasicBlock, [2,2,2,2], **kwargs)
-
 def TinyAttention18(**kwargs):
     x = TinyAttention(BasicBlock, [2,2,2,2], **kwargs)
     x.name = "{}18".format(x.name)
     return x
+
+def TinyAttention34(**kwargs):
+    x = TinyAttention(BasicBlock, [3,4,6,3], **kwargs)
+    x.name = "{}34".format(x.name)
+    return x
+def TinyAttention50(**kwargs):
+    x = TinyAttention(Bottleneck, [3,4,6,3], **kwargs)
+    x.name = "{}50".format(x.name)
+    return x
+def TinyAttention101(**kwargs):
+    x = TinyAttention(Bottleneck, [3,4,23,3], **kwargs)
+    x.name = "{}101".format(x.name)
+    return x
+def TinyAttention152(**kwargs):
+    x = TinyAttention(Bottleneck, [3,8,36,3], **kwargs)
+    x.name = "{}152".format(x.name)
+    return x
+
 
 def TinySegmentation18(**kwargs):
     x = TinySegmentation(BasicBlock, [2,2,2,2], **kwargs)
@@ -306,22 +321,4 @@ def TinyAttentionDecoder18(**kwargs):
     x.name = "{}18".format(x.name)
     return x
 
-def ResNet34ImpBG(**kwargs):
-    return ResNetImpBG(BasicBlock, [3,4,6,3], **kwargs)
 
-def ResNet50ImpBG(**kwargs):
-    return ResNetImpBG(Bottleneck, [3,4,6,3], **kwargs)
-
-def ResNet101ImpBG(**kwargs):
-    return ResNetImpBG(Bottleneck, [3,4,23,3], **kwargs)
-
-def ResNet152ImpBG(**kwargs):
-    return ResNetImpBG(Bottleneck, [3,8,36,3], **kwargs)
-
-
-def test():
-    net = ResNet18()
-    y = net(torch.randn(1,3,32,32))
-    print(y.size())
-
-# test()
