@@ -36,9 +36,9 @@ class Dataloader(object):
             str_transforms.update({i:vname})
 
         self.param_dict = {'root':root,
-                      'size':size,
-                      'batch_sizes':batch_sizes,
-                      'transforms':str_transforms}
+                           'size':size,
+                           'batch_sizes':batch_sizes,
+                           'transforms':str_transforms}
 
     def train_iter(self):
         raise NotImplementedError
@@ -63,9 +63,11 @@ class Dataloader(object):
     @property
     def examples(self):
         raise NotImplementedError
+
     @property
     def params(self):
         return self.param_dict
+
     def __repr__(self):
-        return str(self.params)
+        return str(self.name)
 

@@ -82,6 +82,8 @@ class TinyResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
         self.linear = nn.Linear(512*block.expansion, num_classes)
 
+        ## Visualization
+
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
@@ -102,20 +104,21 @@ class TinyResNet(nn.Module):
         return out
 
     def visualize(self, x):
-        viz_dict = {}
         out = self.forward(x)
+        viz_dict = {}
         hp = HistPlot(title='Model Logit Response',
-                      xlabel='Logit',
-                      ylabel='Frequency',
-                      legend=True,
-                      legend_pos=1,
-                      grid=True)
-
+                            xlabel='Logit',
+                            ylabel='Frequency',
+                            legend=True,
+                            legend_pos=1,
+                            grid=True)
         for n in range(out.size(1)):
             _x = out[:,n].detach().cpu().numpy()
-            hp.add_plot(_x, labels=n, rwidth=0.3)
+            hp.add_plot(_x, label=n)
         viz_dict.update({'LogitResponse':torch.from_numpy(hp.get_image()).permute(2,0,1)})
+        hp.close()
         return viz_dict
+
     def __repr__(self):
         d = {'name':self.name,
              'num_classes':self.num_classes,

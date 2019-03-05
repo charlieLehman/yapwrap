@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from matplotlib import colors
+from yapwrap.utils import HistPlot
 import numpy as np
 
 __all__ = ['TinyAttention18', 'TinyAttentionDecoder18']
@@ -109,9 +110,22 @@ class TinyAttention(nn.Module):
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
         x /= x.max()
-        return {'Input':x,
-                'Segmentation':segviz,
-                'Attention':attn}
+        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn}
+
+        mhp = HistPlot(title='Model Logit Response',
+                                   xlabel='Logit',
+                                   ylabel='Frequency',
+                                   legend=True,
+                                   legend_pos=1,
+                                   grid=True)
+
+        _out = out.sum((-2,-1))/attn.sum((-2,-1))
+        for n in range(out.size(1)):
+            _x = _out[:,n].detach().cpu().numpy()
+            mhp.add_plot(_x, label=n)
+        viz_dict.update({'LogitResponse':torch.from_numpy(mhp.get_image()).permute(2,0,1)})
+        mhp.close()
+        return viz_dict
 
     def overlay_segmentation(self, x, out):
         conf, pred = F.softmax(out,1).max(1)

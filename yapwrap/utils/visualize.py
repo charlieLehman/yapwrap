@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+plt.style.use('seaborn-deep')
 import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
@@ -236,7 +239,6 @@ class HistPlot(Visualizer):
 
         plot = self.axs.hist(data,
                              color=color,
-                             rwidth=rwidth,
                              orientation=orientation,
                              histtype=histtype,
                              range=range,

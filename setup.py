@@ -28,7 +28,11 @@ setup(
     license = "Apache",
     keywords = "pytorch research deepleanring machinelearning",
     url = "https://github.gatech.edu/clehman31/yapwrap",
-    packages=['yapwrap', 'yapwrap.experiments', 'yapwrap.utils','yapwrap.dataloaders','yapwrap.models'],
+    packages=['yapwrap',
+              'yapwrap.experiments',
+              'yapwrap.utils',
+              'yapwrap.dataloaders',
+              'yapwrap.models'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",

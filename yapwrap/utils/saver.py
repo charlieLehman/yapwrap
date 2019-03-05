@@ -49,7 +49,7 @@ class Saver(object):
             if (isinstance(v, dict) and not isinstance(v,str)):
                 _config[k]['class'] = config[k]['class'].__name__
         with open(self.config_path, 'w') as f:
-            json.dump(_config, f, sort_keys=True, indent=4)
+            json.dump(_config, f, sort_keys=True, indent=4, default=obj_dict)
 
     def load_config(self):
         with open(self.config_path, 'r') as f:
@@ -66,6 +66,9 @@ class Saver(object):
         self.optimizer_state_dict = state['optimizer_state_dict']
         print('Resuming Experiment state from {}'.format(self.exp_path))
         return state
+
+def obj_dict(obj):
+    return obj.__dict__
 
 class BestMetricSaver(Saver):
     def __init__(self, metric_set, metric_name, experiment_name, experiment_dir, criterion=np.greater_equal, resume=True):

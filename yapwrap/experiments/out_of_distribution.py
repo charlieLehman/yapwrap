@@ -26,13 +26,9 @@ from collections.abc import Iterable
 class OutOfDistribution(ImageClassification):
     """Image Classification Design Pattern
     """
-    def __init__(self, ood_dataloaders, **kwargs):
-        super(OutOfDistribution, self).__init__(**kwargs)
-        if not isinstance(ood_dataloaders, Iterable):
-            raise TypeError('{} is not a valid type list or tuple'.format(type(ood_dataloaders).__name__))
-        for v in ood_dataloaders:
-            if not isinstance(v, yapwrap.dataloaders.Dataloader):
-                raise TypeError('{} is not a valid Dataloader'.format(type(v).__name__))
+    def __init__(self, config, experiment_dir=None):
+        super(OutOfDistribution, self).__init__(config, experiment_dir)
+        ood_dataloaders = config['ood_dataloaders']['class'](**config['ood_dataloaders']['params'])
         self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in ood_dataloaders]
         self.experiment_name = '{}_OOD'.format(self.experiment_name)
 

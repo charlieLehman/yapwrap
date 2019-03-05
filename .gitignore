@@ -108,6 +108,7 @@ venv.bak/
 
 # data
 data
+examples/data
 datahere
 .#*
 results_dump

@@ -6,6 +6,33 @@ import numpy as np
 import torch
 import os
 
+class OODDataloaders(object):
+    def __init__(self, dataloader_list):
+        for dataloader in dataloader_list:
+            if not isinstance(dataloader, Dataloader):
+                raise TypeError('{} is not a valid type yapwrap.Dataloader'.format(type(dataloader).__name__))
+            if not 'OOD' in type(dataloader).__name__ and not 'Noise' in type(dataloader).__name__:
+                raise TypeError('{} is not a valid OOD or Noise Dataset'.format(type(dataloader).__name__))
+        self.ood_dataloaders = dataloader_list
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            dataloader: (Dataloader)
+        """
+
+        return self.ood_dataloaders[index]
+
+    def __len__(self):
+        return len(self.ood_dataloaders)
+
+    def __repr__(self):
+        return [c.name for c in self.ood_dataloaders]
+
+
 class OOD_CIFAR10(CIFAR10):
     def __init__(self, root='./data', size=32, batch_sizes={'train':128,'test':100, 'ood':100}, transforms={'train':None, 'test':None, 'ood':None}, dataset_len=2500):
         super(OOD_CIFAR10, self).__init__(root, size, batch_sizes, transforms)
