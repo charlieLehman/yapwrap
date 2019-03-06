@@ -70,14 +70,24 @@ class TinyAttention(nn.Module):
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
+        self.attn1 = nn.Sequential(
+            nn.ReLU(),
+            nn.Conv2d(64*block.expansion, 1, kernel_size=1, bias=False),
+        )
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
+        self.attn2 = nn.Sequential(
+            nn.ReLU(),
+            nn.Conv2d(128*block.expansion, 1, kernel_size=1, bias=False),
+        )
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
+        self.attn3 = nn.Sequential(
+            nn.ReLU(),
+            nn.Conv2d(256*block.expansion, 1, kernel_size=1, bias=False),
+        )
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
-        self.attn = nn.Sequential(
+        self.attn4 = nn.Sequential(
             nn.ReLU(),
             nn.Conv2d(512*block.expansion, 1, kernel_size=1, bias=False),
-            nn.Sigmoid()
         )
         self.classify = nn.Sequential(
             nn.ReLU(),
@@ -97,12 +107,16 @@ class TinyAttention(nn.Module):
         s = (x.size(2), x.size(3))
         out = self.bn1(self.conv1(x))
         out = self.layer1(out)
+        attn1 = self.attn1(out)
         out = self.layer2(out)
+        attn2 = self.attn2(out)
         out = self.layer3(out)
+        attn3 = self.attn3(out)
         out = self.layer4(out)
-        out = self.upsample(out, s)
-        attn = self.attn(out)
-        out = self.classify(out)*attn
+        attn4 = self.attn4(out)
+        out = self.classify(out)
+        attn = torch.sigmoid(torch.stack([self.upsample(x,s) for x in [attn1, attn2, attn3, attn4]]).sum(0))
+        out = self.upsample(out, s)*attn
         return out, attn
 
     def visualize(self, x):
@@ -138,7 +152,6 @@ class TinyAttention(nn.Module):
         for x in hsv_ims:
             rgb_ims.append(colors.hsv_to_rgb(x))
         return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
-
 
     def forward(self, x):
         out, attn = self.pixelwise_classification(x)
