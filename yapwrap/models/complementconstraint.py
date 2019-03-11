@@ -22,10 +22,20 @@ class ComplementConstraint(nn.Module):
     def forward(self, input):
         # Extract the negative max complement logits
         out = self.model(input)
-        return self.cc(out)
+        if self.training:
+            return self.cc(out)
+        else:
+            return out
 
     def visualize(self, x):
         mhp = HistPlot(title='Model Logit Response',
+                                   xlabel='Logit',
+                                   ylabel='Frequency',
+                                   legend=True,
+                                   legend_pos=1,
+                                   grid=True)
+
+        mmhp = HistPlot(title='Model Max Logit Response',
                                    xlabel='Logit',
                                    ylabel='Frequency',
                                    legend=True,
@@ -38,6 +48,14 @@ class ComplementConstraint(nn.Module):
                              legend=True,
                              legend_pos=1,
                              grid=True)
+
+        mcchp = HistPlot(title='Complement Constraint Max Logit Response',
+                             xlabel='Logit',
+                             ylabel='Frequency',
+                             legend=True,
+                             legend_pos=1,
+                             grid=True)
+
         mout = self.model(x)
         cout = self.cc(mout)
         viz_dict = {}
@@ -46,16 +64,28 @@ class ComplementConstraint(nn.Module):
             if callable(viz):
                 viz_dict.update(viz(x))
 
+        _mout = mout.detach().cpu().numpy()
+        mmout = _mout.max(1)
+        amout = _mout.argmax(1)
         for n in range(mout.size(1)):
-            _x = mout[:,n].detach().cpu().numpy()
+            _x = _mout[:,n]
             mhp.add_plot(_x, label=n)
+        mmhp.add_plot(mmout)
         viz_dict.update({'LogitResponse':torch.from_numpy(mhp.get_image()).permute(2,0,1)})
+        viz_dict.update({'MaxLogitResponse':torch.from_numpy(mmhp.get_image()).permute(2,0,1)})
+        _cout = cout.detach().cpu().numpy()
+        mcout = _cout.max(1)
+        acout = _cout.argmax(1)
         for n in range(cout.size(1)):
-            _x = cout[:,n].detach().cpu().numpy()
+            _x = _cout[:,n]
             cchp.add_plot(_x, label=n)
+        mcchp.add_plot(mcout)
         viz_dict.update({'CompConstLogitResponse':torch.from_numpy(cchp.get_image()).permute(2,0,1)})
+        viz_dict.update({'CompConstMaxLogitResponse':torch.from_numpy(mcchp.get_image()).permute(2,0,1)})
         mhp.close()
+        mmhp.close()
         cchp.close()
+        mcchp.close()
         return viz_dict
 
 class ComplementConstraintCombined(nn.Module):

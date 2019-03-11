@@ -28,7 +28,7 @@ import json
 from tqdm import tqdm
 
 class Experiment(object):
-    def __init__(self, config, experiment_dir=None):
+    def __init__(self, config=None, experiment_dir=None):
         self.config = config
         self.name = self.__class__.__name__
         self.experiment_dir = experiment_dir

@@ -69,29 +69,47 @@ class TinyAttention(nn.Module):
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
+
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
+        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
+        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
+        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
+
         self.attn1 = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(64*block.expansion, 1, kernel_size=1, bias=False),
+            nn.Conv2d(64*block.expansion, 64*block.expansion, kernel_size=1, bias=False),
         )
-        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.attn2 = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(128*block.expansion, 1, kernel_size=1, bias=False),
+            nn.Conv2d(128*block.expansion, 64*block.expansion, kernel_size=1,  bias=False),
         )
-        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.attn3 = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(256*block.expansion, 1, kernel_size=1, bias=False),
+            nn.Conv2d(256*block.expansion, 64*block.expansion, kernel_size=1, bias=False),
         )
-        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
         self.attn4 = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(512*block.expansion, 1, kernel_size=1, bias=False),
+            nn.Conv2d(512*block.expansion, 64*block.expansion, kernel_size=1, bias=False),
         )
-        self.classify = nn.Sequential(
+        self.attn = nn.Sequential(
+            nn.BatchNorm2d(64*block.expansion),
             nn.ReLU(),
-            nn.Conv2d(512*block.expansion, num_classes, kernel_size=1, bias=False))
+            nn.Conv2d(64*block.expansion,32*block.expansion,kernel_size=1,bias=False),
+            nn.BatchNorm2d(32*block.expansion),
+            nn.ReLU(),
+            nn.Conv2d(32*block.expansion,1,kernel_size=1,bias=False),
+            nn.Sigmoid(),
+            )
+
+        self.classify = nn.Sequential(nn.ReLU(),
+                                      nn.Conv2d(512*block.expansion, 256, kernel_size=3, stride=1, padding=1, bias=False),
+                                      nn.BatchNorm2d(256),
+                                      nn.ReLU(),
+                                      nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=False),
+                                      nn.BatchNorm2d(256),
+                                      nn.ReLU(),
+                                      nn.Conv2d(256, num_classes, kernel_size=1, stride=1))
+
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes
 
@@ -115,8 +133,10 @@ class TinyAttention(nn.Module):
         out = self.layer4(out)
         attn4 = self.attn4(out)
         out = self.classify(out)
-        attn = torch.sigmoid(torch.stack([self.upsample(x,s) for x in [attn1, attn2, attn3, attn4]]).sum(0))
-        out = self.upsample(out, s)*attn
+        out = self.upsample(out, s)
+        m = torch.stack([self.upsample(x,s) for x in [attn1, attn2, attn3, attn4]],0).sum(0)
+        attn = self.attn(m)
+        out = out*attn
         return out, attn
 
     def visualize(self, x):
@@ -133,12 +153,24 @@ class TinyAttention(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = out.sum((-2,-1))/attn.sum((-2,-1))
+        mmhp = HistPlot(title='Model Max Logit Response',
+                                   xlabel='Logit',
+                                   ylabel='Frequency',
+                                   legend=True,
+                                   legend_pos=1,
+                                   grid=True)
+
+        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        mout = _out.max(1)
+        aout = _out.argmax(1)
         for n in range(out.size(1)):
-            _x = _out[:,n].detach().cpu().numpy()
+            _x = _out[:,n]
             mhp.add_plot(_x, label=n)
+        mmhp.add_plot(mout)
         viz_dict.update({'LogitResponse':torch.from_numpy(mhp.get_image()).permute(2,0,1)})
+        viz_dict.update({'MaxLogitResponse':torch.from_numpy(mmhp.get_image()).permute(2,0,1)})
         mhp.close()
+        mmhp.close()
         return viz_dict
 
     def overlay_segmentation(self, x, out):
@@ -152,71 +184,6 @@ class TinyAttention(nn.Module):
         for x in hsv_ims:
             rgb_ims.append(colors.hsv_to_rgb(x))
         return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
-
-    def forward(self, x):
-        out, attn = self.pixelwise_classification(x)
-        return out.sum((-2,-1))/attn.sum((-2,-1))
-
-class TinySegmentation(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
-        super(TinyAttention, self).__init__()
-        self.name = self.__class__.__name__
-        self.in_planes = 64
-
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
-        self.classify = nn.Sequential(
-            nn.ReLU(),
-            nn.Conv2d(512, num_classes, kernel_size=1, bias=False))
-        self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
-        self.num_classes = num_classes
-
-    def _make_layer(self, block, planes, num_blocks, stride):
-        strides = [stride] + [1]*(num_blocks-1)
-        layers = []
-        for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
-            self.in_planes = planes * block.expansion
-        return nn.Sequential(*layers)
-
-    def pixelwise_classification(self, x):
-        s = (x.size(2), x.size(3))
-        out = self.bn1(self.conv1(x))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.layer4(out)
-        out = self.upsample(out, s)
-        out = self.classify(out)
-        return out
-
-    def visualize(self, x):
-        out = self.pixelwise_classification(x)
-        attn = torch.softmax(out, 1).max(1)[0]
-        segviz = self.overlay_segmentation(x, out)
-        x -= x.min()
-        x /= x.max()
-        return {'Input':x,
-                'Segmentation':segviz,
-                'Attention':attn}
-
-    def overlay_segmentation(self, x, out):
-        conf, pred = F.softmax(out,1).max(1)
-        hue = (pred.float() + 0.5)/self.num_classes
-        gs_im = x.mean(1)
-        gs_im -= gs_im.min()
-        gs_im /= gs_im.max()
-        hsv_ims = torch.stack((hue, conf, gs_im),-1).cpu().detach().numpy()
-        rgb_ims = []
-        for x in hsv_ims:
-            rgb_ims.append(colors.hsv_to_rgb(x))
-        return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
-
 
     def forward(self, x):
         out, attn = self.pixelwise_classification(x)
@@ -322,7 +289,6 @@ def TinyAttention152(**kwargs):
     x = TinyAttention(Bottleneck, [3,8,36,3], **kwargs)
     x.name = "{}152".format(x.name)
     return x
-
 
 def TinySegmentation18(**kwargs):
     x = TinySegmentation(BasicBlock, [2,2,2,2], **kwargs)
