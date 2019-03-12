@@ -180,8 +180,8 @@ class TinyPreActAttention(nn.Module):
                             yield p
     @property
     def default_optimizer(self):
-        params = [{'params':self.get_class_params(), 'weight_decay':5e-4},
-                  {'params':self.get_attn_params(), 'weight_decay':0.}]
+        params = [{'params':self.get_class_params(), 'weight_decay':1e-4},
+                  {'params':self.get_attn_params(), 'lr':1e-3, 'weight_decay':0.}]
         return torch.optim.SGD(params, lr=1e-1, momentum=0.9, nesterov=True)
 
 class TinyPreActSegmentation(nn.Module):
@@ -281,7 +281,7 @@ class TinyPreActSegmentation(nn.Module):
 
     @property
     def default_optimizer(self):
-        return torch.optim.SGD(self.parameters, lr=1e-1, momentum=0.9, nesterov=True, weight_decay=5e-4)
+        return torch.optim.SGD(self.parameters(), lr=1e-1, momentum=0.9, nesterov=True, weight_decay=1e-4)
 
 
 def TinyPreActAttention18(**kwargs):
