@@ -113,10 +113,11 @@ class TinyPreActAttention(nn.Module):
 
     def visualize(self, x):
         out, attn = self.pixelwise_classification(x)
+        smax_attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
         x /= x.max()
-        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn}
+        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn, 'SoftMax Attn':smax_attn}
 
         mhp = HistPlot(title='Model Logit Response',
                                    xlabel='Logit',
@@ -242,7 +243,7 @@ class TinyPreActSegmentation(nn.Module):
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
         x /= x.max()
-        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn}
+        viz_dict = {'Input':x, 'Segmentation':segviz, 'SoftMax Attention':attn}
 
         mhp = HistPlot(title='Model Logit Response',
                                    xlabel='Logit',
