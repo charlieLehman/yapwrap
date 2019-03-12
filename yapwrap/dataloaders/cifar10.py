@@ -21,7 +21,7 @@ class CIFAR10(Dataloader):
                 tvtfs.Resize(self.size),
                 tvtfs.RandomCrop(size, padding=4),
                 tvtfs.RandomHorizontalFlip(),
-                tvtfs.RandomAffine(25,(.1,.1),(.9,1.1), resample=3),
+                # tvtfs.RandomAffine(25,(.1,.1),(.9,1.1), resample=3),
                 tvtfs.ToTensor(),
                 tvtfs.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
             ])
