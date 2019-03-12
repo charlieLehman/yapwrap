@@ -42,6 +42,10 @@ class Evaluator(object):
             output, target = kwargs['metrics']
             for metric in self.metrics[self.metric_set].values():
                 self.state[self.metric_set].update(metric(output, target))
+        if 'values' in kwargs:
+            values = kwargs['values']
+            for name, value in values.items():
+                self.state[self.metric_set].update({name:value})
 
     def reset(self):
         for v in self.metrics.values():

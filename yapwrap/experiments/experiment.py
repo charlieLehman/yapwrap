@@ -30,6 +30,7 @@ from tqdm import tqdm
 class Experiment(object):
     def __init__(self, config=None, experiment_dir=None):
         self.on_cuda = False
+        self.resumed = False
         self.config = config
         self.name = self.__class__.__name__
         self.experiment_dir = experiment_dir
@@ -61,7 +62,7 @@ class Experiment(object):
 
             ## Saver
             saver_ = getattr(yapwrap.utils, self.config['saver']['class'])
-            self.saver = saver_(**self.config['saver']['params'], experiment_name=self.experiment_name, experiment_dir=self.experiment_dir)
+            self.saver = saver_(experiment_name=self.experiment_name, experiment_dir=self.experiment_dir, **self.config['saver']['params'])
             state = self.saver.resume()
 
             ## Model
@@ -82,7 +83,10 @@ class Experiment(object):
                 self.optimizer = optimizer_(params=self.model.parameters(),**self.config['optimizer']['params'])
             else:
                 self._init_optimizer()
+
             self.optimizer.load_state_dict(state_dict=state['optimizer_state_dict'])
+
+            self._init_lr_scheduler()
 
             ## Criterion
             criterion_ = getattr(torch.nn, self.config['criterion']['class'])
@@ -96,30 +100,53 @@ class Experiment(object):
 
             self.resumed = True
         else:
+            ## Dataloader
             self.dataloader = self.config['dataloader']['class'](**self.config['dataloader']['params'])
+
+            ## Model
             model_config = self.config['model']['params']
             model_config.update({'num_classes':self.dataloader.num_classes})
             self.model = self.config['model']['class'](**model_config)
+
+            ## Optimizer
             self._init_optimizer()
+
+            ## LR Scheduler
+            self._init_lr_scheduler()
+
+            ## Evaluator
+            self.evaluator = self.config['evaluator']['class'](num_classes=self.dataloader.num_classes, **self.config['evaluator']['params'])
+
+            ## Criterion
+            self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])
+
+            ## Config and Saver
             self.experiment_name = '{}_{}'.format(self.model.name, self.dataloader.name)
             self.experiment_dir = self._experiment_dir(self.experiment_name)
             saver_ = self.config['saver']['class']
-            self.saver = saver_(**self.config['saver']['params'], experiment_name=self.experiment_name, experiment_dir=self.experiment_dir)
-            self.evaluator = self.config['evaluator']['class'](num_classes=self.dataloader.num_classes, **self.config['evaluator']['params'])
-            self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])
+            self.saver = saver_( experiment_name=self.experiment_name, experiment_dir=self.experiment_dir, **self.config['saver']['params'])
+
             self.saver.save_config(self.config)
-            self.resumed = False
+
+    def _init_lr_scheduler(self):
+        if self.resumed:
+            _lr_scheduler = getattr(yapwrap.utils.lr_scheduler, self.config['lr_scheduler']['class'])
+            self.config['lr_scheduler']['class'] = _lr_scheduler
+        if self.config.get('lr_scheduler', None) is None:
+            self.lr_scheduler = None
+            return
+        self.lr_scheduler = self.config['lr_scheduler']['class'](optimizer=self.optimizer, **self.config['lr_scheduler']['params'])
 
     def _init_optimizer(self):
+        _model = self.model.module if self.on_cuda else self.model
+
         if self.config.get('optimizer', None) is None:
-            _model = self.model.module if self.on_cuda else self.model
-            if not hasattr(_model, 'default_optimizer'):
-                raise NotImplementedError('{} does not have a default_optimizer'.format(_model.name))
-            self.optimizer = _model.default_optimizer
-            self.config.update({'_optimizer':{'class':self.optimizer.__class__}})
-            self.config['_optimizer'].update({'params':{'defaults':_model.name}})
-        else:
-            self.optimizer = self.config['optimizer']['class'](self.model.parameters(), **self.config['optimizer']['params'])
+            if not hasattr(_model, 'default_optimizer_config'):
+                raise NotImplementedError('{} does not have a default_optimizer, either define one in the model or provide an optimizer configuration in the experiment config.'.format(_model.name))
+            self.config.update(_model.default_optimizer_config)
+
+        model_params = getattr(_model, 'default_optimizer_parameters', self.model.parameters)()
+        self.optimizer = self.config['optimizer']['class'](model_params, **self.config['optimizer']['params'])
 
     @staticmethod
     def _experiment_dir(experiment_name):

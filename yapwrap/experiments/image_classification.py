@@ -27,17 +27,6 @@ class ImageClassification(Experiment):
     def __init__(self, config, experiment_dir=None):
         super(ImageClassification, self).__init__(config, experiment_dir)
 
-        has_lr_sched = self.config.get('lr_scheduler', False)
-        if has_lr_sched:
-            if not self.resumed:
-                self.lr_scheduler = self.config['lr_scheduler']['class'](optimizer=self.optimizer, **config['lr_scheduler']['params'])
-            else:
-                ## LR Scheduler
-                lr_scheduler_ = getattr(yapwrap.utils.lr_scheduler, self.config['lr_scheduler']['class'])
-                self.lr_scheduler = lr_scheduler_(optimizer=self.optimizer, **self.config['lr_scheduler']['params'])
-        else:
-            self.lr_scheduler = None
-
     def _step(self, input, target, is_training=False):
         output = self.model(input)
         loss = self.criterion(output, target)
@@ -76,8 +65,11 @@ class ImageClassification(Experiment):
             self.evaluator.reset()
             self.model.train()
             if self.lr_scheduler is not None:
-                self.lr_scheduler.step()
+                self.lr_scheduler.step(n)
             self._epoch(train_iter)
+            if self.lr_scheduler is not None:
+                for i, lr in enumerate(self.lr_scheduler.get_lr()):
+                    self.evaluator.update(**{'values':{'lr_{}'.format(i):lr}})
             self.saver.epoch += 1
 
             if validate:
