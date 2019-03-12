@@ -114,6 +114,7 @@ class TinyAttention(nn.Module):
 
     def visualize(self, x):
         out, attn = self.pixelwise_classification(x)
+        attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
         x /= x.max()
