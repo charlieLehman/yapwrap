@@ -104,19 +104,37 @@ class TinyResNet(nn.Module):
         return out
 
     def visualize(self, x):
-        out = self.forward(x)
-        viz_dict = {}
-        hp = HistPlot(title='Model Logit Response',
-                            xlabel='Logit',
-                            ylabel='Frequency',
-                            legend=True,
-                            legend_pos=1,
-                            grid=True)
+        out, attn = self.pixelwise_classification(x)
+        segviz = self.overlay_segmentation(x, out)
+        x -= x.min()
+        x /= x.max()
+        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn}
+
+        mhp = HistPlot(title='Model Logit Response',
+                                   xlabel='Logit',
+                                   ylabel='Frequency',
+                                   legend=True,
+                                   legend_pos=1,
+                                   grid=True)
+
+        mmhp = HistPlot(title='Model Max Logit Response',
+                                   xlabel='Logit',
+                                   ylabel='Frequency',
+                                   legend=True,
+                                   legend_pos=1,
+                                   grid=True)
+
+        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        mout = _out.max(1)
+        aout = _out.argmax(1)
         for n in range(out.size(1)):
-            _x = out[:,n].detach().cpu().numpy()
-            hp.add_plot(_x, label=n)
-        viz_dict.update({'LogitResponse':torch.from_numpy(hp.get_image()).permute(2,0,1)})
-        hp.close()
+            _x = _out[:,n]
+            mhp.add_plot(_x, label=n)
+        mmhp.add_plot(mout)
+        viz_dict.update({'LogitResponse':torch.from_numpy(mhp.get_image()).permute(2,0,1)})
+        viz_dict.update({'MaxLogitResponse':torch.from_numpy(mmhp.get_image()).permute(2,0,1)})
+        mhp.close()
+        mmhp.close()
         return viz_dict
 
     def __repr__(self):

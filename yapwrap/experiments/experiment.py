@@ -29,6 +29,7 @@ from tqdm import tqdm
 
 class Experiment(object):
     def __init__(self, config=None, experiment_dir=None):
+        self.on_cuda = False
         self.config = config
         self.name = self.__class__.__name__
         self.experiment_dir = experiment_dir
@@ -75,9 +76,12 @@ class Experiment(object):
             self.dataloader = dataloader_(**self.config['dataloader']['params'])
 
             ## Optimizer
-            optimizer_ = getattr(torch.optim, self.config['optimizer']['class'])
-            self.config['optimizer']['class'] = optimizer_
-            self.optimizer = optimizer_(params=self.model.parameters(),**self.config['optimizer']['params'])
+            if self.config.get('optimizer', None) is not None:
+                optimizer_ = getattr(torch.optim, self.config['optimizer']['class'])
+                self.config['optimizer']['class'] = optimizer_
+                self.optimizer = optimizer_(params=self.model.parameters(),**self.config['optimizer']['params'])
+            else:
+                self._init_optimizer()
             self.optimizer.load_state_dict(state_dict=state['optimizer_state_dict'])
 
             ## Criterion
@@ -96,7 +100,7 @@ class Experiment(object):
             model_config = self.config['model']['params']
             model_config.update({'num_classes':self.dataloader.num_classes})
             self.model = self.config['model']['class'](**model_config)
-            self.optimizer = self.config['optimizer']['class'](self.model.parameters(), **self.config['optimizer']['params'])
+            self._init_optimizer()
             self.experiment_name = '{}_{}'.format(self.model.name, self.dataloader.name)
             self.experiment_dir = self._experiment_dir(self.experiment_name)
             saver_ = self.config['saver']['class']
@@ -105,6 +109,17 @@ class Experiment(object):
             self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])
             self.saver.save_config(self.config)
             self.resumed = False
+
+    def _init_optimizer(self):
+        if self.config.get('optimizer', None) is None:
+            _model = self.model.module if self.on_cuda else self.model
+            if not hasattr(_model, 'default_optimizer'):
+                raise NotImplementedError('{} does not have a default_optimizer'.format(_model.name))
+            self.optimizer = _model.default_optimizer
+            self.config.update({'_optimizer':{'class':self.optimizer.__class__}})
+            self.config['_optimizer'].update({'params':{'defaults':_model.name}})
+        else:
+            self.optimizer = self.config['optimizer']['class'](self.model.parameters(), **self.config['optimizer']['params'])
 
     @staticmethod
     def _experiment_dir(experiment_name):
@@ -128,7 +143,7 @@ class Experiment(object):
     def cuda(self):
         self.on_cuda = True
         self.model = nn.DataParallel(self.model).cuda()
-        self.optimizer = self.config['optimizer']['class'](self.model.parameters(), **self.config['optimizer']['params'])
+        self._init_optimizer()
         return self
 
     def __str__(self):

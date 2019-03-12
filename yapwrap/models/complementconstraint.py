@@ -88,6 +88,14 @@ class ComplementConstraint(nn.Module):
         mcchp.close()
         return viz_dict
 
+
+    @property
+    def default_optimizer(self):
+        if hasattr(self.model, "default_optimizer"):
+            return self.model.default_optimizer
+        else:
+            return None
+
 class ComplementConstraintCombined(nn.Module):
     def __init__(self, model):
         super(ComplementConstraintCombined, self).__init__()
