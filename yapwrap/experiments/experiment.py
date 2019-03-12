@@ -29,8 +29,8 @@ from tqdm import tqdm
 
 class Experiment(object):
     def __init__(self, config=None, experiment_dir=None):
-        self.on_cuda = False
         self.resumed = False
+        self.on_cuda = False
         self.config = config
         self.name = self.__class__.__name__
         self.experiment_dir = experiment_dir
@@ -47,7 +47,6 @@ class Experiment(object):
             raise TypeError('{} is not a valid yapwrap.utils.Evaluator'.format(type(self.evaluator).__name__))
         if not isinstance(self.dataloader, yapwrap.dataloaders.Dataloader):
             raise TypeError('{} is not a valid type yapwrap.utils.Dataloader'.format(type(self.dataloader).__name__))
-        self.on_cuda = False
 
     def _maybe_resume(self):
         r = re.compile('(.*)run\/([^\/]*)\/experiment_(.*)')
@@ -107,6 +106,10 @@ class Experiment(object):
             model_config = self.config['model']['params']
             model_config.update({'num_classes':self.dataloader.num_classes})
             self.model = self.config['model']['class'](**model_config)
+            if self.config.get('cuda', False):
+                self.model = nn.DataParallel(self.model).cuda()
+                self.model.name = self.model.module.name
+                self.on_cuda = True
 
             ## Optimizer
             self._init_optimizer()
@@ -166,12 +169,6 @@ class Experiment(object):
 
     def _epoch(self):
         raise NotImplementedError
-
-    def cuda(self):
-        self.on_cuda = True
-        self.model = nn.DataParallel(self.model).cuda()
-        self._init_optimizer()
-        return self
 
     def __str__(self):
         return str(self.model)
