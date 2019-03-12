@@ -27,12 +27,16 @@ class ImageClassification(Experiment):
     def __init__(self, config, experiment_dir=None):
         super(ImageClassification, self).__init__(config, experiment_dir)
 
-        if not self.resumed:
-            self.lr_scheduler = self.config['lr_scheduler']['class'](optimizer=self.optimizer, **config['lr_scheduler']['params'])
+        has_lr_sched = self.config.get('lr_scheduler', False)
+        if has_lr_sched:
+            if not self.resumed:
+                self.lr_scheduler = self.config['lr_scheduler']['class'](optimizer=self.optimizer, **config['lr_scheduler']['params'])
+            else:
+                ## LR Scheduler
+                lr_scheduler_ = getattr(yapwrap.utils.lr_scheduler, self.config['lr_scheduler']['class'])
+                self.lr_scheduler = lr_scheduler_(optimizer=self.optimizer, **self.config['lr_scheduler']['params'])
         else:
-            ## LR Scheduler
-            lr_scheduler_ = getattr(yapwrap.utils.lr_scheduler, self.config['lr_scheduler']['class'])
-            self.lr_scheduler = lr_scheduler_(optimizer=self.optimizer, **self.config['lr_scheduler']['params'])
+            self.lr_scheduler = None
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)

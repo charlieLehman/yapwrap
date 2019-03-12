@@ -10,7 +10,7 @@ class PreActBasicBlock(nn.Module):
     expansion = 1
 
     def __init__(self, in_planes, planes, stride=1):
-        super(BasicBlock, self).__init__()
+        super(PreActBasicBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
@@ -36,7 +36,7 @@ class PreActBottleneck(nn.Module):
     expansion = 4
 
     def __init__(self, in_planes, planes, stride=1):
-        super(Bottleneck, self).__init__()
+        super(PreActBottleneck, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_planes)
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
@@ -162,7 +162,7 @@ class TinyPreActAttention(nn.Module):
         return out.sum((-2,-1))/attn.sum((-2,-1))
 
     def get_1x_params(self):
-        modules = [self.layer1, self.layer2, self.layer3, self.layer4, self.conv1, self.bn1, self.classify]
+        modules = [self.layer1, self.layer2, self.layer3, self.layer4, self.conv1, self.classify]
         for i in range(len(modules)):
             for m in modules[i].named_modules():
                 if isinstance(m[1], nn.Conv2d) or isinstance(m[1], nn.BatchNorm2d):
@@ -181,7 +181,7 @@ class TinyPreActAttention(nn.Module):
     @property
     def default_optimizer(self):
         params = [{'params':self.get_1x_params(), 'weight_decay':1e-4},
-                  {'params':self.get_2x_params(), 'lr':5e-2, 'weight_decay':0.}]
+                  {'params':self.get_2x_params(), 'lr':1e-2, 'weight_decay':0.}]
         return torch.optim.SGD(params, lr=1e-1, momentum=0.9, nesterov=True)
 
 class TinyPreActSegmentation(nn.Module):
@@ -279,53 +279,52 @@ class TinyPreActSegmentation(nn.Module):
         out, attn = self.pixelwise_classification(x)
         return out.mean((-2,-1))
 
-
     @property
     def default_optimizer(self):
         return torch.optim.SGD(self.parameters, lr=1e-1, momentum=0.9, nesterov=True, weight_decay=1e-4)
 
 
 def TinyPreActAttention18(**kwargs):
-    x = TinyPreActAttention(BasicBlock, [2,2,2,2], **kwargs)
+    x = TinyPreActAttention(PreActBasicBlock, [2,2,2,2], **kwargs)
     x.name = "{}18".format(x.name)
     return x
 
 def TinyPreActAttention34(**kwargs):
-    x = TinyPreActAttention(BasicBlock, [3,4,6,3], **kwargs)
+    x = TinyPreActAttention(PreActBasicBlock, [3,4,6,3], **kwargs)
     x.name = "{}34".format(x.name)
     return x
 def TinyPreActAttention50(**kwargs):
-    x = TinyPreActAttention(Bottleneck, [3,4,6,3], **kwargs)
+    x = TinyPreActAttention(PreActBottleneck, [3,4,6,3], **kwargs)
     x.name = "{}50".format(x.name)
     return x
 def TinyPreActAttention101(**kwargs):
-    x = TinyPreActAttention(Bottleneck, [3,4,23,3], **kwargs)
+    x = TinyPreActAttention(PreActBottleneck, [3,4,23,3], **kwargs)
     x.name = "{}101".format(x.name)
     return x
 def TinyPreActAttention152(**kwargs):
-    x = TinyPreActAttention(Bottleneck, [3,8,36,3], **kwargs)
+    x = TinyPreActAttention(PreActBottleneck, [3,8,36,3], **kwargs)
     x.name = "{}152".format(x.name)
     return x
 
 def TinyPreActSegmentation18(**kwargs):
-    x = TinyPreActSegmentation(BasicBlock, [2,2,2,2], **kwargs)
+    x = TinyPreActSegmentation(PreActBasicBlock, [2,2,2,2], **kwargs)
     x.name = "{}18".format(x.name)
     return x
 
 def TinyPreActSegmentation34(**kwargs):
-    x = TinyPreActSegmentation(BasicBlock, [3,4,6,3], **kwargs)
+    x = TinyPreActSegmentation(PreActBasicBlock, [3,4,6,3], **kwargs)
     x.name = "{}34".format(x.name)
     return x
 def TinyPreActSegmentation50(**kwargs):
-    x = TinyPreActSegmentation(Bottleneck, [3,4,6,3], **kwargs)
+    x = TinyPreActSegmentation(PreActBottleneck, [3,4,6,3], **kwargs)
     x.name = "{}50".format(x.name)
     return x
 def TinyPreActSegmentation101(**kwargs):
-    x = TinyPreActSegmentation(Bottleneck, [3,4,23,3], **kwargs)
+    x = TinyPreActSegmentation(PreActBottleneck, [3,4,23,3], **kwargs)
     x.name = "{}101".format(x.name)
     return x
 def TinyPreActSegmentation152(**kwargs):
-    x = TinyPreActSegmentation(Bottleneck, [3,8,36,3], **kwargs)
+    x = TinyPreActSegmentation(PreActBottleneck, [3,8,36,3], **kwargs)
     x.name = "{}152".format(x.name)
     return x
 
