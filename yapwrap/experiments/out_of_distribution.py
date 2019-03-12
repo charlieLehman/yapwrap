@@ -64,6 +64,9 @@ class OutOfDistribution(ImageClassification):
             if self.lr_scheduler is not None:
                 self.lr_scheduler.step(n)
             self._epoch(train_iter)
+            if self.lr_scheduler is not None:
+                for i, lr in enumerate(self.lr_scheduler.get_lr()):
+                    self.evaluator.update(**{'values':{'lr_{}'.format(i):lr}})
 
             self.model.eval()
             self._epoch(val_iter)

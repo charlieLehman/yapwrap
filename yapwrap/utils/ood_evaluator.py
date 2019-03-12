@@ -38,16 +38,17 @@ class OODEvaluator(ImageClassificationEvaluator):
 
     def update(self, **kwargs):
         super(OODEvaluator, self).update(**kwargs)
-        output, target = kwargs['metrics']
-        confidence = torch.softmax(output,1).max(1)[0]
-        if self.metric_set == 'validation' and 'metrics' in kwargs:
-            target = torch.zeros_like(target)
-            if any(x is None for x in self.id_state):
-                self.id_state = (to_np(confidence), to_np(target))
-            else:
-                _confidence, _target = self.id_state
-                self.id_state = (np.concatenate((_confidence,to_np(confidence))),
-                                 np.concatenate((_target,to_np(target))))
+        if kwargs.get('metrics', None) is not None:
+            output, target = kwargs['metrics']
+            confidence = torch.softmax(output,1).max(1)[0]
+            if self.metric_set == 'validation' and 'metrics' in kwargs:
+                target = torch.zeros_like(target)
+                if any(x is None for x in self.id_state):
+                    self.id_state = (to_np(confidence), to_np(target))
+                else:
+                    _confidence, _target = self.id_state
+                    self.id_state = (np.concatenate((_confidence,to_np(confidence))),
+                                    np.concatenate((_target,to_np(target))))
 
     def ood_update(self, output, target):
         target = torch.ones_like(target)
