@@ -226,7 +226,7 @@ class TinyPreActSegmentation(nn.Module):
         out = self.layer4(out)
         out = self.classify(out)
         out = self.upsample(out, s)
-        att = torch.softmax(out,1).max(1,keepdim=True)[0]
+        attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         return out, attn
 
     def visualize(self, x):
