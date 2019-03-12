@@ -182,7 +182,7 @@ class TinyAttention(nn.Module):
     @property
     def default_optimizer(self):
         params = [{'params':self.get_1x_params(), 'weight_decay':1e-4},
-                  {'params':self.get_2x_params(), 'lr':5e-2, 'weight_decay':0.}]
+                  {'params':self.get_2x_params(), 'lr':1e-3, 'weight_decay':0.}]
         return torch.optim.SGD(params, lr=1e-1, momentum=0.9, nesterov=True)
 
 class TinySegmentation(nn.Module):
@@ -228,7 +228,7 @@ class TinySegmentation(nn.Module):
         out = self.layer4(out)
         out = self.classify(out)
         out = self.upsample(out, s)
-        att = torch.softmax(out,1).max(1,keepdim=True)[0]
+        attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         return out, attn
 
     def visualize(self, x):
@@ -284,7 +284,7 @@ class TinySegmentation(nn.Module):
 
     @property
     def default_optimizer(self):
-        return torch.optim.SGD(self.parameters, lr=1e-1, momentum=0.9, nesterov=True, weight_decay=1e-4)
+        return torch.optim.SGD(self.parameters(), lr=1e-1, momentum=0.9, nesterov=True, weight_decay=1e-4)
 
 class TinyAttentionDecoder(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
