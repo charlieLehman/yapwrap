@@ -240,7 +240,7 @@ class TinyWideSegmentation(nn.Module):
         out = self.block2(out)
         out = self.block3(out)
         out = self.classify(out)
-        return out, attn
+        return out
 
     def forward(self, x):
         out = self.pixelwise_classification(x)
