@@ -47,6 +47,10 @@ class TinyWideResNet(nn.Module):
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
         super(TinyWideResNet, self).__init__()
         self.name = self.__class__.__name__
+        self.widen_factor = widen_factor
+        self.num_classes = num_classes
+        self.depth = depth
+        self.dropRate = dropRate
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
         n = int((depth - 4) / 6)

@@ -49,7 +49,7 @@ class TinyWideAttention(nn.Module):
         self.name = self.__class__.__name__
         self.depth = depth
         self.num_classes = num_classes
-        self.widen_factor=1
+        self.widen_factor=widen_factor
         self.dropRate=dropRate
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
@@ -198,7 +198,7 @@ class TinyWideSegmentation(nn.Module):
         self.name = self.__class__.__name__
         self.depth = depth
         self.num_classes = num_classes
-        self.widen_factor=1
+        self.widen_factor=widen_factor
         self.dropRate=dropRate
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
