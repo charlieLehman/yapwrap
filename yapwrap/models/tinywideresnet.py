@@ -2,6 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from yapwrap.utils import *
 
 
 class BasicBlock(nn.Module):
@@ -45,9 +46,10 @@ class NetworkBlock(nn.Module):
 class TinyWideResNet(nn.Module):
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
         super(TinyWideResNet, self).__init__()
+        self.name = self.__class__.__name__
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
-        n = (depth - 4) / 6
+        n = int((depth - 4) / 6)
         block = BasicBlock
         # 1st conv before any network block
         self.conv1 = nn.Conv2d(3, nChannels[0], kernel_size=3, stride=1,

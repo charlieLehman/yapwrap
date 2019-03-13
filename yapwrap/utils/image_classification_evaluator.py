@@ -131,15 +131,18 @@ class ImageClassificationEvaluator(Evaluator):
             'train':
             {
                 'Accuracy':Accuracy(),
+                'ErrorRate':ErrorRate(),
             },
             'validation':
             {
                 'Accuracy':RunningAccuracy(),
+                'ErrorRate':RunningErrorRate(),
                 'ExpectedCalibrationError':RunningExpectedCalibrationError(),
             },
             'test':
             {
                 'TestMetric':RunningAccuracy(),
+                'ErrorRate':RunningErrorRate(),
                 'ConfusionMatrix':RunningConfusionMatrix(num_classes),
                 'ExpectedCalibrationError':RunningExpectedCalibrationError(),
             },
