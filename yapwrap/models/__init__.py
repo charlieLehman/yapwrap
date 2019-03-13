@@ -3,6 +3,7 @@ from .complementconstraint import *
 from .tinyresnetattn import *
 from .tinypreactresnetattn import *
 from .tinywideresnet import *
+from .tinywideresnetattn import *
 from .convnet import *
 from .alexnet import *
 
