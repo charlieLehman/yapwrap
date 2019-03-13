@@ -322,9 +322,9 @@ def TinyWideAttention28x10(**kwargs):
     x.name = "{}28x10".format(x.name)
     return x
 
-def TinyWideAttention50x2(**kwargs):
-    x = TinyWideAttention(depth=40, widen_factor=10, **kwargs)
-    x.name = "{}34".format(x.name)
+def TinyWideAttention40x2(**kwargs):
+    x = TinyWideAttention(depth=40, widen_factor=2, dropRate=0.3, **kwargs)
+    x.name = "{}40x2".format(x.name)
     return x
 
 def TinyWideAttention40x14(**kwargs):
@@ -343,9 +343,9 @@ def TinyWideSegmentation28x10(**kwargs):
     x.name = "{}28x10".format(x.name)
     return x
 
-def TinyWideSegmentation50x2(**kwargs):
-    x = TinyWideSegmentation(depth=40, widen_factor=10, **kwargs)
-    x.name = "{}34".format(x.name)
+def TinyWideSegmentation40x2(**kwargs):
+    x = TinyWideSegmentation(depth=40, widen_factor=2, dropRate=0.3, **kwargs)
+    x.name = "{}40x2".format(x.name)
     return x
 
 def TinyWideSegmentation40x14(**kwargs):

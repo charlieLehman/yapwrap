@@ -208,14 +208,11 @@ class TinySegmentation(nn.Module):
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
 
-        self.classify = nn.Sequential(nn.ReLU(),
-                                      nn.Conv2d(512*block.expansion, 256, kernel_size=3, stride=1, padding=1, bias=False),
-                                      nn.BatchNorm2d(256),
-                                      nn.ReLU(),
-                                      nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1, bias=False),
-                                      nn.BatchNorm2d(256),
-                                      nn.ReLU(),
-                                      nn.Conv2d(256, num_classes, kernel_size=1, stride=1))
+        self.classify = nn.Sequential(
+            nn.BatchNorm2d(512*block.expansion),
+            nn.ReLU(),
+            nn.Conv2d(512*block.expansion, num_classes, kernel_size=1, stride=1, bias=False)
+        )
 
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes

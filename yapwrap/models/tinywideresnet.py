@@ -143,6 +143,11 @@ def TinyWideResNet28x10(**kwargs):
     x.name = "{}28x10".format(x.name)
     return x
 
+def TinyWideResNet40x2(**kwargs):
+    x = TinyWideResNet(depth=40, widen_factor=2, **kwargs)
+    x.name = "{}40x2".format(x.name)
+    return x
+
 def TinyWideResNet50x2(**kwargs):
     x = TinyWideResNet(depth=40, widen_factor=10, **kwargs)
     x.name = "{}34".format(x.name)
