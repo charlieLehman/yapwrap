@@ -11,8 +11,6 @@ import torch.nn.functional as F
 from yapwrap.utils import *
 from matplotlib import pyplot as plt
 
-__all__ = ['TinyResNet', 'TinyResNet18', 'TinyResNet50']
-
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -80,7 +78,7 @@ class TinyResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.linear = nn.Linear(512*block.expansion, num_classes)
+        self.linear = nn.Linear(512*block.expansion, **kwargs)
 
         ## Visualization
 
@@ -104,12 +102,9 @@ class TinyResNet(nn.Module):
         return out
 
     def visualize(self, x):
-        out, attn = self.pixelwise_classification(x)
-        segviz = self.overlay_segmentation(x, out)
-        x -= x.min()
-        x /= x.max()
-        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn}
 
+        viz_dict = {}
+        out = self.forward(x)
         mhp = HistPlot(title='Model Logit Response',
                                    xlabel='Logit',
                                    ylabel='Frequency',
@@ -124,7 +119,7 @@ class TinyResNet(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        _out = out.detach().cpu().numpy()
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):
@@ -142,33 +137,35 @@ class TinyResNet(nn.Module):
              'num_classes':self.num_classes,
              'num_blocks':self.num_blocks}
         return str(d)
+    @property
+    def default_optimizer_config(self):
+        return {"optimizer":{"class":torch.optim.SGD,
+                                "params":{"lr":1e-1,
+                                          "momentum":0.9,
+                                          "nesterov":True,
+                                          "weight_decay":5e-4}}}
 
 
 def TinyResNet18(**kwargs):
-    x = TinyResNet(BasicBlock, [2,2,2,2], kwargs['num_classes'])
+    x = TinyResNet(BasicBlock, [2,2,2,2], **kwargs)
     x.name = "{}18".format(x.name)
     return x
 
-def TinyResNet34(num_classes):
-    x = TinyResNet(BasicBlock, [3,4,6,3], num_classes)
+def TinyResNet34(**kwargs):
+    x = TinyResNet(BasicBlock, [3,4,6,3], **kwargs)
     x.name = "{}34".format(x.name)
     return x
 
-def TinyResNet50(num_classes):
-    x = TinyResNet(Bottleneck, [3,4,6,3], num_classes)
+def TinyResNet50(**kwargs):
+    x = TinyResNet(Bottleneck, [3,4,6,3], **kwargs)
     x.name = "{}50".format(x.name)
     return x
 
-def TinyResNet101(num_classes):
-    return TinyResNet(Bottleneck, [3,4,23,3], num_classes)
+def TinyResNet101(**kwargs):
+    x.name = "{}101".format(x.name)
+    return TinyResNet(Bottleneck, [3,4,23,3], **kwargs)
 
-def TinyResNet152(num_classes):
-    return TinyResNet(Bottleneck, [3,8,36,3], num_classes)
+def TinyResNet152(**kwargs):
+    x.name = "{}152".format(x.name)
+    return TinyResNet(Bottleneck, [3,8,36,3], **kwargs)
 
-
-def test():
-    net = TinyResNet18()
-    y = net(torch.randn(1,3,32,32))
-    print(y.size())
-
-# test()

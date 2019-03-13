@@ -1,5 +1,3 @@
-# From https://github.com/xternalz/WideResNet-pytorch
-
 import math
 import torch
 import torch.nn as nn
@@ -44,9 +42,9 @@ class NetworkBlock(nn.Module):
     def forward(self, x):
         return self.layer(x)
 
-class WideResNet(nn.Module):
+class TinyWideResNet(nn.Module):
     def __init__(self, depth, num_classes, widen_factor=1, dropRate=0.0):
-        super(WideResNet, self).__init__()
+        super(TinyWideResNet, self).__init__()
         nChannels = [16, 16*widen_factor, 32*widen_factor, 64*widen_factor]
         assert((depth - 4) % 6 == 0)
         n = (depth - 4) / 6
@@ -89,12 +87,8 @@ class WideResNet(nn.Module):
         return out
 
     def visualize(self, x):
-        out, attn = self.pixelwise_classification(x)
-        segviz = self.overlay_segmentation(x, out)
-        x -= x.min()
-        x /= x.max()
-        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn}
-
+        viz_dict = {}
+        out = self.forward(x)
         mhp = HistPlot(title='Model Logit Response',
                                    xlabel='Logit',
                                    ylabel='Frequency',
@@ -109,7 +103,7 @@ class WideResNet(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        _out = out.detach().cpu().numpy()
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):
@@ -127,3 +121,33 @@ class WideResNet(nn.Module):
              'num_classes':self.num_classes,
              'num_blocks':self.num_blocks}
         return str(d)
+
+    @property
+    def default_optimizer_config(self):
+        return {"optimizer":{"class":torch.optim.SGD,
+                                "params":{"lr":1e-1,
+                                          "momentum":0.9,
+                                          "nesterov":True,
+                                          "weight_decay":5e-4}}}
+
+
+def TinyWideResNet16x8(**kwargs):
+    x = TinyWideResNet(depth=16, widen_factor=8, **kwargs)
+    x.name = "{}16x8".format(x.name)
+    return x
+
+def TinyWideResNet28x10(**kwargs):
+    x = TinyWideResNet(depth=28, widen_factor=10, **kwargs)
+    x.name = "{}28x10".format(x.name)
+    return x
+
+def TinyWideResNet50x2(**kwargs):
+    x = TinyWideResNet(depth=40, widen_factor=10, **kwargs)
+    x.name = "{}34".format(x.name)
+    return x
+
+def TinyWideResNet40x14(**kwargs):
+    x = TinyWideResNet(BasicBlock, [3,4,6,3], **kwargs)
+    x.name = "{}34".format(x.name)
+    return x
+

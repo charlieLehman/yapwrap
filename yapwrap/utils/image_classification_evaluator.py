@@ -49,6 +49,24 @@ class Accuracy(Metric):
         val = (prediction.eq(target)).float().mean().item()
         return {'Accuracy':val}
 
+class RunningErrorRate(RunningAccuracy):
+    def __init__(self):
+        super(RunningErrorRate, self).__init__()
+
+    def forward(self, output, target):
+        accdict = super(RunningErrorRate, self).forward(output, target)
+        acc = accdict.get('Accuracy', 0)
+        return {'ErrorRate':1-acc}
+
+class ErrorRate(Accuracy):
+    def __init__(self):
+        super(ErrorRate, self).__init__()
+
+    def forward(self, output, target):
+        accdict = super(ErrorRate, self).forward(output, target)
+        acc = accdict.get('Accuracy', 0)
+        return {'ErrorRate':1-acc}
+
 class RunningConfusionMatrix(Metric):
     def __init__(self, num_classes):
         super(RunningConfusionMatrix, self).__init__()
