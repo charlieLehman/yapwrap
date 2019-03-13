@@ -182,7 +182,7 @@ class TinyAttention(nn.Module):
                             yield p
 
     def default_optimizer_parameters(self):
-        params = [{'params':self.get_class_params(), 'weight_decay':1e-3},
+        params = [{'params':self.get_class_params(), 'weight_decay':5e-4},
                   {'params':self.get_attn_params(), 'lr':1e-4, 'weight_decay':1e-5}]
         return params
 
