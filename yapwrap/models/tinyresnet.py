@@ -104,12 +104,9 @@ class TinyResNet(nn.Module):
         return out
 
     def visualize(self, x):
-        out, attn = self.pixelwise_classification(x)
-        segviz = self.overlay_segmentation(x, out)
-        x -= x.min()
-        x /= x.max()
-        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn}
 
+        viz_dict = {}
+        out = self.forward(x)
         mhp = HistPlot(title='Model Logit Response',
                                    xlabel='Logit',
                                    ylabel='Frequency',
@@ -124,7 +121,7 @@ class TinyResNet(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        _out = out.detach().cpu().numpy()
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):
@@ -142,6 +139,13 @@ class TinyResNet(nn.Module):
              'num_classes':self.num_classes,
              'num_blocks':self.num_blocks}
         return str(d)
+    @property
+    def default_optimizer_config(self):
+        return {"optimizer":{"class":torch.optim.SGD,
+                                "params":{"lr":1e-1,
+                                          "momentum":0.9,
+                                          "nesterov":True,
+                                          "weight_decay":5e-4}}}
 
 
 def TinyResNet18(**kwargs):

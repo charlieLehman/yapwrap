@@ -181,8 +181,8 @@ class TinyPreActAttention(nn.Module):
                             yield p
 
     def default_optimizer_parameters(self):
-        params = [{'params':self.get_class_params(), 'weight_decay':1e-3},
-                  {'params':self.get_attn_params(), 'lr':1e-4, 'weight_decay':1e-5}]
+        params = [{'params':self.get_class_params(), 'weight_decay':5e-4},
+                  {'params':self.get_attn_params(), 'lr':1e-4, 'weight_decay':5e-6}]
         return params
 
     @property
@@ -228,19 +228,20 @@ class TinyPreActSegmentation(nn.Module):
         return nn.Sequential(*layers)
 
     def pixelwise_classification(self, x):
-        out = self.conv1(x)
+        out = self.bn1(self.conv1(x))
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
         out = self.classify(out)
-        attn = torch.softmax(out,1).max(1,keepdim=True)[0]
-        return out, attn
+        return out
 
     def visualize(self, x):
-        out, attn = self.pixelwise_classification(x)
+        out = self.pixelwise_classification(x)
+        attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         s = (x.size(2), x.size(3))
         out = self.upsample(out, s)
+        attn = self.upsample(attn, s)
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
         x /= x.max()
@@ -260,7 +261,7 @@ class TinyPreActSegmentation(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        _out = out.mean((-2,-1)).detach().cpu().numpy()
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):
@@ -286,7 +287,7 @@ class TinyPreActSegmentation(nn.Module):
         return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
 
     def forward(self, x):
-        out, attn = self.pixelwise_classification(x)
+        out = self.pixelwise_classification(x)
         return out.mean((-2,-1))
 
     @property
@@ -295,7 +296,7 @@ class TinyPreActSegmentation(nn.Module):
                                 "params":{"lr":1e-1,
                                           "momentum":0.9,
                                           "nesterov":True,
-                                          "weight_decay":1e-3}}}
+                                          "weight_decay":5e-4}}}
 
 
 def TinyPreActAttention18(**kwargs):
