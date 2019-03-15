@@ -106,6 +106,8 @@ class Experiment(object):
             model_config = self.config['model']['params']
             model_config.update({'num_classes':self.dataloader.num_classes})
             self.model = self.config['model']['class'](**model_config)
+            self.config.update({'flops':get_model_complexity_info(self.model,self.dataloader.size, True, True)[0]})
+
             if self.config.get('cuda', False):
                 self.model = nn.DataParallel(self.model).cuda()
                 self.model.name = self.model.module.name

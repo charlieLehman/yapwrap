@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from yapwrap.utils import *
 from matplotlib import pyplot as plt
+import math
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -137,13 +138,18 @@ class TinyResNet(nn.Module):
              'num_classes':self.num_classes,
              'num_blocks':self.num_blocks}
         return str(d)
+
     @property
-    def default_optimizer_config(self):
-        return {"optimizer":{"class":torch.optim.SGD,
-                                "params":{"lr":1e-1,
-                                          "momentum":0.9,
-                                          "nesterov":True,
-                                          "weight_decay":5e-4}}}
+    def default_optimizer_config(self, **kwargs):
+        _class = kwargs.get('class', torch.optim.SGD)
+        _lr = 1e-1 if self.num_classes <= 100 else 1e-3
+        sgd_params = {"lr":_lr,
+                      "momentum":0.9,
+                      "nesterov":True,
+                      "weight_decay":5e-4}
+        _params = kwargs.get('params', sgd_params)
+        return {"optimizer":{"class":_class,
+                                "params":_params}}
 
 
 def TinyResNet18(**kwargs):
