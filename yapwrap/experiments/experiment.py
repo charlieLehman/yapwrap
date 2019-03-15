@@ -125,7 +125,9 @@ class Experiment(object):
 
             ## Config and Saver
             self.experiment_name = '{}_{}'.format(self.model.name, self.dataloader.name)
-            self.experiment_dir = self._experiment_dir(self.experiment_name)
+            self.experiment_dir = experiment_dir(self.experiment_name)
+            if not os.path.exists(self.experiment_dir):
+                os.makedirs(self.experiment_dir)
             saver_ = self.config['saver']['class']
             self.saver = saver_( experiment_name=self.experiment_name, experiment_dir=self.experiment_dir, **self.config['saver']['params'])
 
@@ -151,15 +153,6 @@ class Experiment(object):
         model_params = getattr(_model, 'default_optimizer_parameters', self.model.parameters)()
         self.optimizer = self.config['optimizer']['class'](model_params, **self.config['optimizer']['params'])
 
-    @staticmethod
-    def _experiment_dir(experiment_name):
-        directory = os.path.join('run', experiment_name)
-        runs = sorted(glob.glob(os.path.join(directory, 'experiment_*')))
-        run_id = int(runs[-1].split('_')[-1]) + 1 if runs else 0
-        exp_dir = os.path.join(directory, 'experiment_{:04d}'.format(run_id))
-        if not os.path.exists(exp_dir):
-            os.makedirs(exp_dir)
-        return exp_dir
 
     def save(self):
         self.saver.save()
@@ -182,3 +175,11 @@ class Experiment(object):
 class NotExperimentError(Exception):
     def __init__(self, message):
         self.message = message
+
+def experiment_dir(experiment_name, run_id=None):
+    directory = os.path.join('run', experiment_name)
+    runs = sorted(glob.glob(os.path.join(directory, 'experiment_*')))
+    if run_id is None:
+        run_id = int(runs[-1].split('_')[-1]) + 1 if runs else 0
+    exp_dir = os.path.join(directory, 'experiment_{:04d}'.format(run_id))
+    return exp_dir
