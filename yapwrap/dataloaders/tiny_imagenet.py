@@ -23,13 +23,14 @@ class TinyImageNet(Dataloader):
             download_url('http://cs231n.stanford.edu/tiny-imagenet-200.zip', self.root, 'tiny-imagenet-200.zip', None)
             with zipfile.ZipFile('{}.zip'.format(self.path), 'r') as z:
                 z.extractall(self.root)
+        if os.path.exists(os.path.join(self.path,'val/images')):
+            self.create_val_folder()
 
         if transforms['train'] is None:
             self.train_transform = tvtfs.Compose([
                 tvtfs.Resize(self.size),
-                tvtfs.RandomCrop(self.size, padding=4),
                 tvtfs.RandomHorizontalFlip(),
-                tvtfs.RandomAffine(25,(.1,.1),(.9,1.1), resample=3),
+                tvtfs.RandomCrop(self.size, padding=8),
                 tvtfs.ToTensor(),
                 tvtfs.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ])
@@ -62,7 +63,8 @@ class TinyImageNet(Dataloader):
         return test_iter
 
     def val_iter(self):
-        val_iter = self.test_iter()
+        valset = dset.ImageFolder(root=os.path.join(self.root, 'tiny-imagenet-200/val'), transform=self.test_transform)
+        val_iter = DataLoader(valset, batch_size=self.test_batch_size, shuffle=False, num_workers=12, pin_memory=True)
         val_iter.metric_set = 'validation'
         return val_iter
 
@@ -87,3 +89,29 @@ class TinyImageNet(Dataloader):
         p.update({'num_classes':self.num_classes})
         p.update({'sample_indices':self.example_indices})
         return p
+
+    def create_val_folder(self):
+        """
+        This method is responsible for separating validation images into separate sub folders
+        """
+        print('Creating val set folder structure')
+        path = os.path.join(self.root, 'tiny-imagenet-200/val')
+        filename = os.path.join(self.root, 'tiny-imagenet-200/val/val_annotations.txt')
+        fp = open(filename, "r")  # open file in read mode
+        data = fp.readlines()  # read line by line
+
+        val_img_dict = {}
+        for line in data:
+            words = line.split("\t")
+            val_img_dict[words[0]] = words[1]
+        fp.close()
+
+        # Create folder if not present, and move image into proper folder
+        for img, folder in val_img_dict.items():
+            newpath = (os.path.join(path, folder))
+            if not os.path.exists(newpath):  # check if folder exists
+                os.makedirs(newpath)
+
+            if os.path.exists(os.path.join(path,'images', img)):  # Check if image exists in default directory
+                os.rename(os.path.join(path,'images', img), os.path.join(newpath, img))
+        os.rmdir(os.path.join(path,'images'))

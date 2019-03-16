@@ -69,8 +69,9 @@ class OutOfDistribution(ImageClassification):
                     self.evaluator.update(**{'values':{'lr_{}'.format(i):lr}})
 
             self.model.eval()
-            self._epoch(val_iter)
-            self._ood_run()
+            with torch.no_grad():
+                self._epoch(val_iter)
+                self._ood_run()
             self.saver.epoch += 1
 
             self.logger.summarize_scalars(self.evaluator)

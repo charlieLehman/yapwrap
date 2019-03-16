@@ -86,9 +86,8 @@ class TinyWideResNet(nn.Module):
         out = self.block2(out)
         out = self.block3(out)
         out = self.relu(self.bn1(out))
+        out = out.mean((-2,-1))
 
-        out = F.avg_pool2d(out, 8)
-        out = out.view(-1, self.nChannels)
         out = self.linear(out)
         return out
 
@@ -124,8 +123,7 @@ class TinyWideResNet(nn.Module):
 
     def __repr__(self):
         d = {'name':self.name,
-             'num_classes':self.num_classes,
-             'num_blocks':self.num_blocks}
+             'num_classes':self.num_classes}
         return str(d)
 
     @property

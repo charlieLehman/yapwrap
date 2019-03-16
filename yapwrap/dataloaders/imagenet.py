@@ -71,7 +71,7 @@ class ImageNet(Dataloader):
 
     @property
     def num_classes(self):
-        return 200
+        return 1000
 
     @property
     def examples(self):

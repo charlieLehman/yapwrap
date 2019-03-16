@@ -74,7 +74,8 @@ class ImageClassification(Experiment):
 
             if validate:
                 self.model.eval()
-                self._epoch(val_iter)
+                with torch.no_grad():
+                    self._epoch(val_iter)
 
             self.logger.summarize_scalars(self.evaluator)
             self.saver.model_state_dict = self._get_model_state()

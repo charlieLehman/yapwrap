@@ -5,6 +5,8 @@ from matplotlib import colors
 from yapwrap.utils import HistPlot
 import numpy as np
 
+import math
+
 
 
 class BasicBlock(nn.Module):
@@ -70,22 +72,37 @@ class TinyAttention(nn.Module):
         self.bn1 = nn.BatchNorm2d(64)
 
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
-        self.attn1 = block(64, 1, 1)
+        self.attn1 = block(64*block.expansion, 1, 1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
-        self.attn2 = block(128, 1, 1)
+        self.attn2 = block(128*block.expansion, 1, 1)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.attn3 = block(256, 1, 1)
+        self.attn3 = block(256*block.expansion, 1, 1)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
-        self.attn4 = block(512, 1, 1)
+        self.attn4 = block(512*block.expansion, 1, 1)
+
+        self.attn = nn.Sequential(
+            nn.BatchNorm2d(block.expansion),
+            nn.ReLU(),
+            nn.Conv2d(block.expansion, 1, kernel_size=1, stride=1, bias=False),
+            nn.Sigmoid()
+        ) if block.expansion > 1 else None
 
         self.classify = nn.Sequential(
             nn.BatchNorm2d(512*block.expansion),
             nn.ReLU(),
-            nn.Conv2d(512*block.expansion, num_classes, kernel_size=1, stride=1, bias=False)
+            nn.Conv2d(512*block.expansion, num_classes, kernel_size=1, stride=1, bias=False),
         )
 
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)
@@ -108,7 +125,11 @@ class TinyAttention(nn.Module):
         attn4 = self.attn4(out)
         out = self.classify(out)
         out = self.upsample(out, s)
-        attn = torch.sigmoid(torch.stack([self.upsample(x,s) for x in [attn1, attn2, attn3, attn4]],0).sum(0))
+        _attn = torch.stack([self.upsample(x,s) for x in [attn1, attn2, attn3, attn4]],0).sum(0)
+        if self.attn is None:
+            attn = torch.sigmoid(_attn)
+        else:
+            attn = self.attn(_attn)
         out = out*attn
         return out, attn
 
@@ -216,6 +237,14 @@ class TinySegmentation(nn.Module):
 
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1]*(num_blocks-1)

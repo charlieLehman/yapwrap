@@ -34,7 +34,7 @@ class OODEvaluator(ImageClassificationEvaluator):
         super(OODEvaluator, self).__init__(num_classes)
         self.id_state = (None, None)
         self.ood_state = (None, None)
-        self.state.update({'OOD':{'FPR95':{}, 'AUROC':{}, 'AUPR':{}}})
+        self.state.update({'OOD':{'FPR90':{}, 'FPR95':{}, 'AUROC':{}, 'AUPR':{}}})
 
     def update(self, **kwargs):
         super(OODEvaluator, self).update(**kwargs)
@@ -68,6 +68,8 @@ class OODEvaluator(ImageClassificationEvaluator):
         target = np.concatenate((id_target, ood_target))
         name = '{}/FPR95'.format(dataloader_name)
         self.state['OOD']['FPR95'].update({name:fpr_and_fdr_at_recall(target, ood_conf, recall_level=0.95)})
+        name = '{}/FPR90'.format(dataloader_name)
+        self.state['OOD']['FPR90'].update({name:fpr_and_fdr_at_recall(target, ood_conf, recall_level=0.90)})
         name = '{}/AUROC'.format(dataloader_name)
         self.state['OOD']['AUROC'].update({name:roc_auc_score(target, ood_conf)})
         name = '{}/AUPR'.format(dataloader_name)
