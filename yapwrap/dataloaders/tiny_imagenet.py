@@ -14,7 +14,7 @@ def to_np(x):
     return x.detach().cpu().numpy()
 
 class TinyImageNet(Dataloader):
-    def __init__(self, root='./data', size=32, batch_sizes={'train':128,'test':100}, transforms={'train':None, 'test':None}):
+    def __init__(self, root='./data', size=64, batch_sizes={'train':128,'test':100}, transforms={'train':None, 'test':None}):
         super(TinyImageNet, self).__init__(root, size, batch_sizes, transforms)
         self.root = root
         self.train_batch_size = batch_sizes['train']
