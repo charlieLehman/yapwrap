@@ -26,10 +26,16 @@ from collections.abc import Iterable
 class OutOfDistribution(ImageClassification):
     """Image Classification Design Pattern
     """
-    def __init__(self, config, experiment_dir=None):
-        super(OutOfDistribution, self).__init__(config, experiment_dir)
-        ood_dataloaders = config['ood_dataloaders']['class'](**config['ood_dataloaders']['params'])
-        self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in ood_dataloaders]
+    def __init__(self, config=None, experiment_name=None, experiment_number=None):
+        super(OutOfDistribution, self).__init__(config, experiment_name, experiment_number)
+
+        if isinstance(self.config['ood_dataloaders']['class'], str):
+            _ood_dataloaders = getattr(yapwrap.dataloaders, self.config['ood_dataloaders']['class'])
+            dataloader_list = [getattr(yapwrap.dataloaders, x['name'])() for x in self.config['ood_dataloaders']['params']['dataloader_list']]
+            self.ood_dataloaders = _ood_dataloaders(dataloader_list)
+
+
+        self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in self.ood_dataloaders]
         self.experiment_name = '{}_OOD'.format(self.experiment_name)
 
     def _ood_run(self):

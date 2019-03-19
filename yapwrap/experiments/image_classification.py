@@ -24,8 +24,8 @@ from tqdm import tqdm
 class ImageClassification(Experiment):
     """Image Classification Design Pattern
     """
-    def __init__(self, config, experiment_dir=None):
-        super(ImageClassification, self).__init__(config, experiment_dir)
+    def __init__(self, config=None, experiment_name=None, experiment_number=None):
+        super(ImageClassification, self).__init__(config, experiment_name, experiment_number)
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)
