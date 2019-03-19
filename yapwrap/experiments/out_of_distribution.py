@@ -22,14 +22,23 @@ import os
 import glob
 from tqdm import tqdm
 from collections.abc import Iterable
+import pandas as pd
+import pickle as pkl
+
 
 class OutOfDistribution(ImageClassification):
     """Image Classification Design Pattern
     """
-    def __init__(self, config, experiment_dir=None):
-        super(OutOfDistribution, self).__init__(config, experiment_dir)
-        ood_dataloaders = config['ood_dataloaders']['class'](**config['ood_dataloaders']['params'])
-        self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in ood_dataloaders]
+    def __init__(self, config=None, experiment_name=None, experiment_number=None):
+        super(OutOfDistribution, self).__init__(config, experiment_name, experiment_number)
+
+        if isinstance(self.config['ood_dataloaders']['class'], str):
+            _ood_dataloaders = getattr(yapwrap.dataloaders, self.config['ood_dataloaders']['class'])
+            dataloader_list = [getattr(yapwrap.dataloaders, x['name'])() for x in self.config['ood_dataloaders']['params']['dataloader_list']]
+            self.ood_dataloaders = _ood_dataloaders(dataloader_list)
+
+
+        self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in self.ood_dataloaders]
         self.experiment_name = '{}_OOD'.format(self.experiment_name)
 
     def _ood_run(self):
@@ -78,6 +87,37 @@ class OutOfDistribution(ImageClassification):
             self.saver.model_state_dict = self._get_model_state()
             self.saver.optimizer_state_dict = self.optimizer.state_dict()
             self.saver.save(metric_evaluator = self.evaluator)
+
+    def _ood_test(self, metrics_path=None):
+        evaluator = self.evaluator
+        self.model.eval()
+        if metrics_path is None:
+            self.metrics_path = self.saver.experiment_dir
+        else:
+            self.metrics_path = metrics_path
+        with torch.no_grad():
+            self._epoch(self.dataloader.val_iter())
+            evaluator.metric_set = 'OOD'
+            for name, data_iter in self.ood_iters:
+                tbar = tqdm(data_iter)
+                for input, target in tbar:
+                    if self.on_cuda:
+                        input = input.cuda()
+                        target = target.cuda()
+                    ood = getattr(self.model.module,'detect_ood', None)
+                    if callable(ood):
+                        output = ood(input)
+                    else:
+                        output = self.model(input)
+                    evaluator.ood_update(output, target)
+                    tbar.set_description(data_iter.name)
+                evaluator.ood_run(name)
+                viz = getattr(self.model.module,'visualize', None)
+                if callable(viz):
+                    viz_dict = viz(input)
+                metrics_dict = {'metrics': pd.concat([pd.DataFrame(evaluator.state) , pd.DataFrame(evaluator.metrics)], axis=0, ignore_index=True, sort=False), 'viz_data': viz_dict}
+                with open(os.path.join(self.metrics_path, '%s_%s_%s_metrics.pkl' %(self.model.name, self.dataloader.name, name)), 'wb') as fh:
+                    pkl.dump(metrics_dict, fh, protocol=pkl.HIGHEST_PROTOCOL)
 
     def test(self):
         super(OutOfDistribution, self).test()

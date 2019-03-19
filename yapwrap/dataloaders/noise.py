@@ -86,3 +86,11 @@ def add_gaussian_noise(img, scale=0.1):
     img = np.minimum(np.maximum(img, 0), 255)
     img = img.astype('uint8')
     return Image.fromarray(img)
+
+
+def Noise_Gaussian():
+    return Noise(noise_type='Gaussian')
+def Noise_Rademacher():
+    return Noise(noise_type='Rademacher')
+def Noise_Blob():
+    return Noise(noise_type='Blob')

@@ -28,12 +28,12 @@ import json
 from tqdm import tqdm
 
 class Experiment(object):
-    def __init__(self, config=None, experiment_dir=None):
+    def __init__(self, config=None, experiment_name=None, experiment_number=None):
         self.resumed = False
         self.on_cuda = False
         self.config = config
         self.name = self.__class__.__name__
-        self.experiment_dir = experiment_dir
+        self.experiment_dir = get_experiment_dir(experiment_name, experiment_number)
         self._maybe_resume()
         self.logger = yapwrap.utils.Logger(self.experiment_name, self.experiment_dir)
 
@@ -79,12 +79,14 @@ class Experiment(object):
             if self.config.get('optimizer', None) is not None:
                 optimizer_ = getattr(torch.optim, self.config['optimizer']['class'])
                 self.config['optimizer']['class'] = optimizer_
-                self.optimizer = optimizer_(params=self.model.parameters(),**self.config['optimizer']['params'])
-            else:
-                self._init_optimizer()
+                # self.optimizer = optimizer_(params=self.model.parameters(),**self.config['optimizer']['params'])
+            self._init_optimizer()
 
             self.optimizer.load_state_dict(state_dict=state['optimizer_state_dict'])
 
+            if self.config.get('lr_scheduler', None) is not None:
+                lr_scheduler_ = getattr(torch.optim.lr_scheduler, self.config['lr_scheduler']['class'])
+                self.config['lr_scheduler']['class'] = lr_scheduler_
             self._init_lr_scheduler()
 
             ## Criterion
@@ -136,9 +138,6 @@ class Experiment(object):
             self.saver.save_config(self.config)
 
     def _init_lr_scheduler(self):
-        if self.resumed:
-            _lr_scheduler = getattr(yapwrap.utils.lr_scheduler, self.config['lr_scheduler']['class'])
-            self.config['lr_scheduler']['class'] = _lr_scheduler
         if self.config.get('lr_scheduler', None) is None:
             self.lr_scheduler = None
             return
@@ -178,7 +177,9 @@ class NotExperimentError(Exception):
     def __init__(self, message):
         self.message = message
 
-def experiment_dir(experiment_name, run_id=None):
+def get_experiment_dir(experiment_name, run_id=None):
+    if experiment_name is None:
+        return None
     directory = os.path.join('run', experiment_name)
     runs = sorted(glob.glob(os.path.join(directory, 'experiment_*')))
     if run_id is None:
