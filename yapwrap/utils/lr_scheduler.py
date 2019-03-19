@@ -16,6 +16,17 @@
 from torch.nn import functional as F
 from torch import nn
 import torch
+import math
+
+class CosineAnnealingLR(torch.optim.lr_scheduler._LRScheduler):
+    def __init__(self, optimizer, T_max, last_epoch=-1, min_lr_lambda=lambda x:1e-6/x):
+        self.T_max = T_max
+        self.min_lrs = [min_lr_lambda(pg['lr']) for pg in optimizer.param_groups]
+        super(CosineAnnealingLR, self).__init__(optimizer, last_epoch)
+
+    def get_lr(self):
+        return [min_lr + (base_lr - min_lr)*0.5*(1+math.cos(math.pi*self.last_epoch/self.T_max))
+                for min_lr, base_lr in zip(self.min_lrs, self.base_lrs)]
 
 class PolyLR(torch.optim.lr_scheduler._LRScheduler):
     """Sets the learning rate of each parameter group to the initial lr

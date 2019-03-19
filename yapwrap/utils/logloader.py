@@ -17,8 +17,8 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 import os
 
 class LogLoader(object):
-    def __init__(self, experiment_name, experiment_number):
-        self.experiment_dir = os.path.join('run', experiment_name, 'experiment_{:04d}'.format(experiment_number))
+    def __init__(self, experiment_name, experiment_number, basedir='run'):
+        self.experiment_dir = os.path.join(basedir, experiment_name, 'experiment_{:04d}'.format(experiment_number))
         self.event_acc = EventAccumulator(self.experiment_dir)
         self.event_acc.Reload()
 

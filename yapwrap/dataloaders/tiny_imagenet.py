@@ -64,7 +64,7 @@ class TinyImageNet(Dataloader):
 
     def val_iter(self):
         valset = dset.ImageFolder(root=os.path.join(self.root, 'tiny-imagenet-200/val'), transform=self.test_transform)
-        val_iter = DataLoader(valset, batch_size=self.test_batch_size, shuffle=False, num_workers=12, pin_memory=True)
+        val_iter = DataLoader(valset, batch_size=self.test_batch_size, shuffle=True, num_workers=12, pin_memory=True)
         val_iter.metric_set = 'validation'
         return val_iter
 
