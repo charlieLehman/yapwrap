@@ -125,4 +125,3 @@ class OOD_TinyImageNet(TinyImageNet):
         ood_iter.name = self.name
         ood_iter.__len__ = self.dataset_len
         return ood_iter
-

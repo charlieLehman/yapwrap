@@ -9,7 +9,7 @@ import inspect
 
 
 config = lambda model, dataloader, ood_dataloaders, num_epochs: {
-    "experiment_dir":None,
+    "experiment_dir":'/media/advait/DATA/Advait/Handouts_and_assignments/Spring_2019_coursework/yapwrap/run/TinyAttention18_CIFAR10',
     "dataloader":{
         "class":dataloader,
         "params":{}
@@ -44,28 +44,18 @@ config = lambda model, dataloader, ood_dataloaders, num_epochs: {
 
 
 # Training Data
-dataloaders = [TinyImageNet]
+dataloaders = [CIFAR10]
 # Out of Distribution Data
-_ood_dataloaders = [OOD_TinyImageNet(), OOD_CIFAR10(), OOD_CIFAR100(), OOD_SVHN(), Noise(noise_type='Gaussian'), Noise(noise_type='Rademacher'), Noise(noise_type='Blob')]
-_num_epochs = [100]
+_ood_dataloaders = [OOD_CIFAR10(), OOD_TinyImageNet()]
+_num_epochs = [1]
 
 for i, (dataloader, num_epochs) in enumerate(zip(dataloaders, _num_epochs)):
     ood_dataloaders = [*_ood_dataloaders[:i], *_ood_dataloaders[(i+1):]]
 
     # Models to Compare
-    trn_res = TinyResNet18
-    trn_wrn = TinyWideResNet40x2
     trn_attn = TinyAttention18
-    trn_segm = TinySegmentation18
-    trn_wrnattn = TinyWideAttention40x2
-    trn_wrnsegm = TinyWideSegmentation40x2
     models = [
-        trn_wrn,
         trn_attn,
-        trn_segm,
-        trn_wrnattn,
-        trn_wrnsegm,
-        trn_res,
     ]
 
     # Run an experiment for each model
@@ -73,3 +63,4 @@ for i, (dataloader, num_epochs) in enumerate(zip(dataloaders, _num_epochs)):
         # Experiment Parameters
         exp = OutOfDistribution(config(model, dataloader, ood_dataloaders, num_epochs))
         exp.train(num_epochs)
+        exp._ood_test()
