@@ -139,7 +139,7 @@ class TinyAttention(nn.Module):
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
         x /= x.max()
-        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn, 'SoftMax Attn':smax_attn}
+        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn, 'SoftMax Attention':smax_attn}
 
         mhp = HistPlot(title='Model Logit Response',
                                    xlabel='Logit',

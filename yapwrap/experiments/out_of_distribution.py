@@ -29,13 +29,15 @@ import pickle as pkl
 class OutOfDistribution(ImageClassification):
     """Image Classification Design Pattern
     """
-    def __init__(self, config=None, experiment_name=None, experiment_number=None):
-        super(OutOfDistribution, self).__init__(config, experiment_name, experiment_number)
+    def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
+        super(OutOfDistribution, self).__init__(config, experiment_name, experiment_number, cuda)
 
         if isinstance(self.config['ood_dataloaders']['class'], str):
             _ood_dataloaders = getattr(yapwrap.dataloaders, self.config['ood_dataloaders']['class'])
             dataloader_list = [getattr(yapwrap.dataloaders, x['name'])() for x in self.config['ood_dataloaders']['params']['dataloader_list']]
             self.ood_dataloaders = _ood_dataloaders(dataloader_list)
+        else:
+            self.ood_dataloaders = self.config['ood_dataloaders']['class'](**self.config['ood_dataloaders']['params'])
 
 
         self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in self.ood_dataloaders]
@@ -115,10 +117,13 @@ class OutOfDistribution(ImageClassification):
                 viz = getattr(self.model.module,'visualize', None)
                 if callable(viz):
                     viz_dict = viz(input)
-                metrics_dict = {'metrics': pd.concat([pd.DataFrame(evaluator.state) , pd.DataFrame(evaluator.metrics)], axis=0, ignore_index=True, sort=False), 'viz_data': viz_dict}
-                with open(os.path.join(self.metrics_path, '%s_%s_%s_metrics.pkl' %(self.model.name, self.dataloader.name, name)), 'wb') as fh:
-                    pkl.dump(metrics_dict, fh, protocol=pkl.HIGHEST_PROTOCOL)
+                print(pd.DataFrame(evaluator.state))
+                print(pd.DataFrame(evaluator.metrics))
+                # metrics = pd.concat([ , pd.DataFrame(evaluator.metrics)], axis=0, ignore_index=True, sort=False)
+                # print(metrics)
+                metrics_dict = {'metrics':metrics, 'viz_data': viz_dict}
+                # with open(os.path.join(self.metrics_path, '%s_%s_%s_metrics.pkl' %(self.model.name, self.dataloader.name, name)), 'wb') as fh:
+                #     pkl.dump(metrics_dict, fh, protocol=pkl.HIGHEST_PROTOCOL)
 
     def test(self):
-        super(OutOfDistribution, self).test()
-        self._ood_run()
+        return self._ood_test()

@@ -24,8 +24,8 @@ from tqdm import tqdm
 class ImageClassification(Experiment):
     """Image Classification Design Pattern
     """
-    def __init__(self, config=None, experiment_name=None, experiment_number=None):
-        super(ImageClassification, self).__init__(config, experiment_name, experiment_number)
+    def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
+        super(ImageClassification, self).__init__(config, experiment_name, experiment_number, cuda)
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)
@@ -86,3 +86,15 @@ class ImageClassification(Experiment):
         self.model.eval()
         test_iter = self.dataloader.test_iter()
         self._epoch(test_iter)
+
+    def visualize(self, dataloader=None):
+        self.model.eval()
+        if dataloader is None:
+            dataloader = self.dataloader
+        viz_input = dataloader.examples.cuda() if self.on_cuda else dataloader.examples
+        if viz_input is False:
+            ex_str = 'The dataloader {} does not have any canned examples.'.format(dataloader.name)
+            raise Exception(ex_str)
+        viz = getattr(self.model.module,'visualize', None)
+        if callable(viz):
+            return viz(viz_input)

@@ -21,6 +21,8 @@ import math
 class CosineAnnealingLR(torch.optim.lr_scheduler._LRScheduler):
     def __init__(self, optimizer, T_max, last_epoch=-1, min_lr_lambda=lambda x:1e-6/x):
         self.T_max = T_max
+        if not callable(min_lr_lambda):
+            min_lr_lambda = lambda x: 0
         self.min_lrs = [min_lr_lambda(pg['lr']) for pg in optimizer.param_groups]
         super(CosineAnnealingLR, self).__init__(optimizer, last_epoch)
 

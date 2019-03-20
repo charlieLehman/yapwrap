@@ -28,7 +28,7 @@ import json
 from tqdm import tqdm
 
 class Experiment(object):
-    def __init__(self, config=None, experiment_name=None, experiment_number=None):
+    def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
         self.resumed = False
         self.on_cuda = False
         self.config = config
@@ -70,6 +70,11 @@ class Experiment(object):
             self.model = model_(**self.config['model']['params'])
             self.model.load_state_dict(state['model_state_dict'])
 
+            if self.config.get('cuda', False):
+                self.model = nn.DataParallel(self.model).cuda()
+                self.model.name = self.model.module.name
+                self.on_cuda = True
+
             ## Dataloader
             dataloader_ = getattr(yapwrap.dataloaders, self.config['dataloader']['class'])
             self.config['dataloader']['class'] = dataloader_
@@ -85,7 +90,8 @@ class Experiment(object):
             self.optimizer.load_state_dict(state_dict=state['optimizer_state_dict'])
 
             if self.config.get('lr_scheduler', None) is not None:
-                lr_scheduler_ = getattr(torch.optim.lr_scheduler, self.config['lr_scheduler']['class'])
+                lr_scheduler_ = getattr(yapwrap.utils, self.config['lr_scheduler']['class'])
+                    # lr_scheduler_ = getattr(torch.optim.lr_scheduler, self.config['lr_scheduler']['class'])
                 self.config['lr_scheduler']['class'] = lr_scheduler_
             self._init_lr_scheduler()
 
@@ -129,7 +135,8 @@ class Experiment(object):
 
             ## Config and Saver
             self.experiment_name = '{}_{}'.format(self.model.name, self.dataloader.name)
-            self.experiment_dir = experiment_dir(self.experiment_name)
+            self.experiment_dir = get_experiment_dir(self.experiment_name)
+            print('Created {}'.format(self.experiment_dir))
             if not os.path.exists(self.experiment_dir):
                 os.makedirs(self.experiment_dir)
             saver_ = self.config['saver']['class']
@@ -171,6 +178,9 @@ class Experiment(object):
         if self.on_cuda:
             return self.model.module.state_dict()
         return self.model.state_dict()
+
+    def visualize(self):
+        raise NotImplementedError
 
 
 class NotExperimentError(Exception):

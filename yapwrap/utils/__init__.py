@@ -7,3 +7,4 @@ from .saver import *
 from .visualize import *
 from .logloader import *
 from .flops_counter import get_model_complexity_info
+from .lr_scheduler import *
