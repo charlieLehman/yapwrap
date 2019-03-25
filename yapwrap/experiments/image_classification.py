@@ -20,6 +20,9 @@ from torch import nn
 import os
 import glob
 from tqdm import tqdm
+import requests
+from io import BytesIO
+from PIL import Image
 
 class ImageClassification(Experiment):
     """Image Classification Design Pattern
@@ -54,7 +57,7 @@ class ImageClassification(Experiment):
             output = self._step(input, target)
             tbar.set_description(self.evaluator.tbar_desc(self.saver.epoch))
         viz = getattr(self.model.module,'visualize', None)
-        if callable(viz):
+        if callable(viz) and self.make_logs:
             self.logger.summarize_images(viz(input), self.dataloader.name, self.evaluator.step)
 
     def train(self, num_epochs, validate=True):
@@ -86,12 +89,24 @@ class ImageClassification(Experiment):
         self.model.eval()
         test_iter = self.dataloader.test_iter()
         self._epoch(test_iter)
+        return self.evaluator.state
 
-    def visualize(self, dataloader=None):
+    def visualize(self, img_url=None, dataloader=None, transform=None):
         self.model.eval()
-        if dataloader is None:
-            dataloader = self.dataloader
-        viz_input = dataloader.examples.cuda() if self.on_cuda else dataloader.examples
+        _input = None
+        if img_url is not None:
+            response = requests.get(img_url)
+            img = Image.open(BytesIO(response.content))
+            if transform is not None:
+                _input = transform(img).cuda().unsqueeze(0)
+            else:
+                _input = self.dataloader.test_transform(img).cuda().unsqueeze(0)
+        elif dataloader is not None:
+            _input = dataloader.examples
+        else:
+            _input = self.dataloader.examples
+
+        viz_input = _input.cuda() if self.on_cuda else _input
         if viz_input is False:
             ex_str = 'The dataloader {} does not have any canned examples.'.format(dataloader.name)
             raise Exception(ex_str)

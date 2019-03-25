@@ -45,6 +45,7 @@ setup(
         "scikit-image",
         "pandas",
         "tqdm",
+        "requests",
         "tensorboardX",
 ],
      dependency_links=[

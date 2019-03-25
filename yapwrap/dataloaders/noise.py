@@ -60,6 +60,20 @@ class Noise(Dataloader):
         ood_iter.name = self.name
         return ood_iter
 
+    @property
+    def examples(self, for_input=True):
+        test_list = list(self.loader)
+        x, l = test_list[-1]
+        if for_input:
+            return x[0].unsqueeze(0)
+        x = to_np(x[self.example_indices])
+        x *= np.reshape(np.array((0.2023, 0.1994, 0.2010)), (1,3,1,1))
+        x += np.reshape(np.array((0.4914, 0.4822, 0.4465)), (1,3,1,1))
+        x[x<0] = 0
+        x[x>1] = 1.
+        # np.save(path_to_npy, x)
+        return torch.from_numpy(x)
+
 class AddNoise(object):
     def __init__(self, p=0.5, noise_type='Gaussian'):
         self.p = p
@@ -88,9 +102,9 @@ def add_gaussian_noise(img, scale=0.1):
     return Image.fromarray(img)
 
 
-def Noise_Gaussian():
-    return Noise(noise_type='Gaussian')
-def Noise_Rademacher():
-    return Noise(noise_type='Rademacher')
-def Noise_Blob():
-    return Noise(noise_type='Blob')
+def Noise_Gaussian(size=32):
+    return Noise(noise_type='Gaussian', size=size)
+def Noise_Rademacher(size=32):
+    return Noise(noise_type='Rademacher', size=size)
+def Noise_Blob(size=32):
+    return Noise(noise_type='Blob', size=size)

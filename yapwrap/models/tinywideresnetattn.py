@@ -130,7 +130,11 @@ class TinyWideAttention(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        response = out.sum((-2,-1))/attn.sum((-2,-1))
+        viz_dict.update({'PxLvlLogits':out, 'PxLvltmax':torch.softmax(out,1)})
+        viz_dict.update({'ImLvlLogits':response, 'ImLvlSoftmax':torch.softmax(response,1)})
+
+        _out = response.detach().cpu().numpy()
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):
@@ -273,7 +277,9 @@ class TinyWideSegmentation(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = out.mean((-2,-1)).detach().cpu().numpy()
+        response = out.mean((-2,-1))
+        _out = response.detach().cpu().numpy()
+        viz_dict.update({'ImLvlLogits':response, 'ImLvlSoftmax':torch.softmax(response,1)})
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):

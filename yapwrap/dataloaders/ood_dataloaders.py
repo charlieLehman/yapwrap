@@ -7,13 +7,18 @@ import torch
 import os
 
 class OODDataloaders(object):
-    def __init__(self, dataloader_list):
+    def __init__(self, dataloader_list, transform, in_domain_total, ratio_ood=0.2):
         for dataloader in dataloader_list:
             if not isinstance(dataloader, Dataloader):
                 raise TypeError('{} is not a valid type yapwrap.Dataloader'.format(type(dataloader).__name__))
             if not 'OOD' in type(dataloader).__name__ and not 'Noise' in type(dataloader).__name__:
                 raise TypeError('{} is not a valid OOD or Noise Dataset'.format(type(dataloader).__name__))
         self.ood_dataloaders = dataloader_list
+
+        # TODO AAAAHHHHH monkey patching?!
+        for d in self.ood_dataloaders:
+            d.ood_transform = transform
+            d.dataset_len = int((1-ratio_ood)/ratio_ood * in_domain_total)
 
     def __getitem__(self, index):
         """

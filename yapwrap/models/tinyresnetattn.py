@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from matplotlib import colors
-from yapwrap.utils import HistPlot
+from matplotlib import pyplot as plt
+from yapwrap.utils import HistPlot, GradCAM
 import numpy as np
 
 import math
@@ -124,22 +125,29 @@ class TinyAttention(nn.Module):
         out = self.layer4(out)
         attn4 = self.attn4(out)
         out = self.classify(out)
-        out = self.upsample(out, s)
+        px_log = self.upsample(out, s)
         _attn = torch.stack([self.upsample(x,s) for x in [attn1, attn2, attn3, attn4]],0).sum(0)
         if self.attn is None:
             attn = torch.sigmoid(_attn)
         else:
             attn = self.attn(_attn)
-        out = out*attn
-        return out, attn
+        out = px_log*attn
+        return out, attn, px_log
 
     def visualize(self, x):
-        out, attn = self.pixelwise_classification(x)
+        s = (x.size(2), x.size(3))
+        out, attn, px_log = self.pixelwise_classification(x)
         smax_attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         segviz = self.overlay_segmentation(x, out)
+        segpx = self.overlay_segmentation(x, px_log)
         x -= x.min()
         x /= x.max()
-        viz_dict = {'Input':x, 'Segmentation':segviz, 'Attention':attn, 'SoftMax Attention':smax_attn}
+        viz_dict = {'Input':x,
+                    'Segmentation':segviz,
+                    'Attention':attn,
+                    'SoftMax Attention':smax_attn,
+                    'Pixelwise Seg':segpx,
+        }
 
         mhp = HistPlot(title='Model Logit Response',
                                    xlabel='Logit',
@@ -155,7 +163,11 @@ class TinyAttention(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = (out.sum((-2,-1))/attn.sum((-2,-1))).detach().cpu().numpy()
+        response = out.sum((-2,-1))/attn.sum((-2,-1))
+        viz_dict.update({'PxLvlLogits':out, 'PxLvltmax':torch.softmax(out,1)})
+        viz_dict.update({'ImLvlLogits':response, 'ImLvlSoftmax':torch.softmax(response,1)})
+
+        _out = response.detach().cpu().numpy()
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):
@@ -166,11 +178,28 @@ class TinyAttention(nn.Module):
         viz_dict.update({'MaxLogitResponse':torch.from_numpy(mmhp.get_image()).permute(2,0,1)})
         mhp.close()
         mmhp.close()
+
+        # layer_n = ['layer{}'.format(n) for n in (1,2,3,4)]
+        # gcam = GradCAM(self)
+        # gcam.forward(x)
+        # for l in layer_n:
+        #     viz_dict.update({l:{}})
+        #     for n in range(10):
+        #         gcam.backward(idx=n)
+        #         region = self.upsample(gcam.generate(l),s)
+        #         viz_dict[l].update({n:region})
         return viz_dict
 
     def overlay_segmentation(self, x, out):
         conf, pred = F.softmax(out,1).max(1)
         hue = (pred.float() + 0.5)/self.num_classes
+        if self.num_classes == 10:
+            hd = torch.linspace(.05,.95,10)
+            hd = hd[[0,2,4,6,8,3,7,5,1,9]].to(out.device)
+            # hd = torch.from_numpy(colors.rgb_to_hsv(plt.get_cmap('tab10').colors)[:,0]).float()
+            # hd = hd.to(out.device)
+            # # y_1h = y[pred].permute(0,3,1,2).to(out.device)
+            hue = hd[pred]
         gs_im = x.mean(1)
         gs_im -= gs_im.min()
         gs_im /= gs_im.max()
@@ -181,7 +210,7 @@ class TinyAttention(nn.Module):
         return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
 
     def forward(self, x):
-        out, attn = self.pixelwise_classification(x)
+        out, attn, _ = self.pixelwise_classification(x)
         return out.sum((-2,-1))/attn.sum((-2,-1))
 
     def get_class_params(self):
@@ -288,7 +317,9 @@ class TinySegmentation(nn.Module):
                                    legend_pos=1,
                                    grid=True)
 
-        _out = out.mean((-2,-1)).detach().cpu().numpy()
+        response = out.mean((-2,-1))
+        _out = response.detach().cpu().numpy()
+        viz_dict.update({'ImLvlLogits':response, 'ImLvlSoftmax':torch.softmax(response,1)})
         mout = _out.max(1)
         aout = _out.argmax(1)
         for n in range(out.size(1)):

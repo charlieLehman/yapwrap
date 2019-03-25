@@ -41,7 +41,7 @@ class OODEvaluator(ImageClassificationEvaluator):
         if kwargs.get('metrics', None) is not None:
             output, target = kwargs['metrics']
             confidence = torch.softmax(output,1).max(1)[0]
-            if self.metric_set == 'validation' and 'metrics' in kwargs:
+            if (self.metric_set == 'validation' or self.metric_set == 'test') and 'metrics' in kwargs:
                 target = torch.zeros_like(target)
                 if any(x is None for x in self.id_state):
                     self.id_state = (to_np(confidence), to_np(target))

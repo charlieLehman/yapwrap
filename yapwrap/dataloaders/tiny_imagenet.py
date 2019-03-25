@@ -68,6 +68,20 @@ class TinyImageNet(Dataloader):
         val_iter.metric_set = 'validation'
         return val_iter
 
+    def build_label_dicts(self):
+        label_dict, class_description = {}, {}
+        with open(os.path.join(self.root, 'tiny-imagenet-200/wnids.txt'), 'r') as f:
+            for i, line in enumerate(f.readlines()):
+                synset = line[:-1]  # remove \n
+                label_dict[synset] = i
+        with open(os.path.join(self.root, 'tiny-imagenet-200/words.txt'), 'r') as f:
+            for i, line in enumerate(f.readlines()):
+                synset, desc = line.split('\t')
+                desc = desc[:-1]  # remove \n
+                if synset in label_dict:
+                    class_description[label_dict[synset]] = desc
+        return label_dict, class_description
+
     @property
     def class_names(self):
         return self._class_names

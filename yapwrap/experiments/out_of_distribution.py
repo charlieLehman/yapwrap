@@ -24,6 +24,7 @@ from tqdm import tqdm
 from collections.abc import Iterable
 import pandas as pd
 import pickle as pkl
+import copy
 
 
 class OutOfDistribution(ImageClassification):
@@ -34,11 +35,11 @@ class OutOfDistribution(ImageClassification):
 
         if isinstance(self.config['ood_dataloaders']['class'], str):
             _ood_dataloaders = getattr(yapwrap.dataloaders, self.config['ood_dataloaders']['class'])
+            #TODO Fix this to not have instances prior
             dataloader_list = [getattr(yapwrap.dataloaders, x['name'])() for x in self.config['ood_dataloaders']['params']['dataloader_list']]
-            self.ood_dataloaders = _ood_dataloaders(dataloader_list)
+            self.ood_dataloaders = _ood_dataloaders(dataloader_list, self.dataloader.test_transform,  in_domain_total=len(self.dataloader.test_iter()))
         else:
-            self.ood_dataloaders = self.config['ood_dataloaders']['class'](**self.config['ood_dataloaders']['params'])
-
+            self.ood_dataloaders = self.config['ood_dataloaders']['class'](**self.config['ood_dataloaders']['params'], transform=self.dataloader.test_transform, in_domain_total = len(self.dataloader.test_iter()))
 
         self.ood_iters = [(dataloader.name, dataloader.ood_iter()) for dataloader in self.ood_dataloaders]
         self.experiment_name = '{}_OOD'.format(self.experiment_name)
@@ -61,9 +62,10 @@ class OutOfDistribution(ImageClassification):
                 tbar.set_description(data_iter.name)
             self.evaluator.ood_run(name)
             viz = getattr(self.model.module,'visualize', None)
-            if callable(viz):
+            if callable(viz) and self.make_logs:
                 self.logger.summarize_images(viz(input), name, self.evaluator.step)
-        self.logger.summarize_scalars(self.evaluator)
+        if self.make_logs:
+            self.logger.summarize_scalars(self.evaluator)
         self.evaluator.metric_set = _metric_set
 
     def train(self, num_epochs):
@@ -117,13 +119,15 @@ class OutOfDistribution(ImageClassification):
                 viz = getattr(self.model.module,'visualize', None)
                 if callable(viz):
                     viz_dict = viz(input)
-                print(pd.DataFrame(evaluator.state))
-                print(pd.DataFrame(evaluator.metrics))
-                # metrics = pd.concat([ , pd.DataFrame(evaluator.metrics)], axis=0, ignore_index=True, sort=False)
-                # print(metrics)
-                metrics_dict = {'metrics':metrics, 'viz_data': viz_dict}
-                # with open(os.path.join(self.metrics_path, '%s_%s_%s_metrics.pkl' %(self.model.name, self.dataloader.name, name)), 'wb') as fh:
-                #     pkl.dump(metrics_dict, fh, protocol=pkl.HIGHEST_PROTOCOL)
 
-    def test(self):
-        return self._ood_test()
+    def test(self, num_trials=5):
+        self.make_logs = False
+        self.model.eval()
+        evst_d = {}
+        with torch.no_grad():
+            self._epoch(self.dataloader.test_iter())
+            for trial in range(num_trials):
+                self._ood_run()
+                evst_d.update({trial:copy.deepcopy(self.evaluator.state)})
+
+        return evst_d

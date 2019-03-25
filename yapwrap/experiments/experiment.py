@@ -29,6 +29,7 @@ from tqdm import tqdm
 
 class Experiment(object):
     def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
+        self.make_logs = True
         self.resumed = False
         self.on_cuda = False
         self.config = config
