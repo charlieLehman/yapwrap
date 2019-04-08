@@ -85,4 +85,3 @@ class MNIST(Dataloader):
         p.update({'num_classes':self.num_classes})
         p.update({'sample_indices':self.example_indices})
         return p
-

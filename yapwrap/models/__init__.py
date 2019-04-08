@@ -6,6 +6,7 @@ from .tinywideresnet import *
 from .tinywideresnetattn import *
 from .convnet import *
 from .alexnet import *
+from .segnet import *
 
 
 def ComplementConstraintTinyAttention18(num_classes=10):

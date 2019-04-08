@@ -63,4 +63,3 @@ class Evaluator(object):
             k,v = self.state[self.metric_set].items()[0]
             desc += "{} - {}: {:.3f}".format(self.metric_set, k,v)
         return desc
-
