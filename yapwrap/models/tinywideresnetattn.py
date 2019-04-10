@@ -150,6 +150,13 @@ class TinyWideAttention(nn.Module):
     def overlay_segmentation(self, x, out):
         conf, pred = F.softmax(out,1).max(1)
         hue = (pred.float() + 0.5)/self.num_classes
+        if self.num_classes == 10:
+            hd = torch.linspace(.05,.95,10)
+            hd = hd[[0,2,4,6,8,3,7,5,1,9]].to(out.device)
+            # hd = torch.from_numpy(colors.rgb_to_hsv(plt.get_cmap('tab10').colors)[:,0]).float()
+            # hd = hd.to(out.device)
+            # # y_1h = y[pred].permute(0,3,1,2).to(out.device)
+            hue = hd[pred]
         gs_im = x.mean(1)
         gs_im -= gs_im.min()
         gs_im /= gs_im.max()
@@ -295,6 +302,13 @@ class TinyWideSegmentation(nn.Module):
     def overlay_segmentation(self, x, out):
         conf, pred = F.softmax(out,1).max(1)
         hue = (pred.float() + 0.5)/self.num_classes
+        if self.num_classes == 10:
+            hd = torch.linspace(.05,.95,10)
+            hd = hd[[0,2,4,6,8,3,7,5,1,9]].to(out.device)
+            # hd = torch.from_numpy(colors.rgb_to_hsv(plt.get_cmap('tab10').colors)[:,0]).float()
+            # hd = hd.to(out.device)
+            # # y_1h = y[pred].permute(0,3,1,2).to(out.device)
+            hue = hd[pred]
         gs_im = x.mean(1)
         gs_im -= gs_im.min()
         gs_im /= gs_im.max()
