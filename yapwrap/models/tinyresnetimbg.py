@@ -232,7 +232,7 @@ class TinyImpBG(nn.Module):
 
     def default_optimizer_parameters(self):
         params = [{'params':self.get_class_params(), 'weight_decay':5e-4},
-                  {'params':self.get_attn_params(), 'lr':1e-4, 'weight_decay':5e-6}]
+                  {'params':self.get_attn_params(), 'lr':1e-3, 'weight_decay':5e-4}]
         return params
 
     @property

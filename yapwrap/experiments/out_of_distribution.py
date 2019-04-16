@@ -28,7 +28,7 @@ import copy
 
 
 class OutOfDistribution(ImageClassification):
-    """Image Classification Design Pattern
+    """Image Classification with OOD Evaluation Design Pattern
     """
     def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
         super(OutOfDistribution, self).__init__(config, experiment_name, experiment_number, cuda)
