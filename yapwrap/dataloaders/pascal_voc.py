@@ -178,6 +178,7 @@ class VOCSegmentation(data.Dataset):
     def __str__(self):
         return 'VOC2012(split=' + str(self.split) + ')'
 
+
 class Normalize(object):
     """Normalize a tensor image with mean and standard deviation.
     Args:

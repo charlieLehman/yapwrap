@@ -2,6 +2,7 @@ from .tinyresnet import *
 from .complementconstraint import *
 from .tinyresnetattn import *
 from .tinyresnetimbg import *
+from .resnetattn import *
 from .tinypreactresnetattn import *
 from .tinywideresnet import *
 from .tinywideresnetattn import *

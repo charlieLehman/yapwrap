@@ -15,6 +15,7 @@
 
 import yapwrap
 from yapwrap.experiments import ImageClassification, OutOfDistribution
+from yapwrap.modules import *
 import torch
 from torch import nn
 import os
@@ -29,15 +30,14 @@ class ImpBGClassification(ImageClassification):
     """
     def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
         super(ImpBGClassification, self).__init__(config, experiment_name, experiment_number, cuda)
+        self.impbgloss = ImplicitAttentionLoss()
 
     def _step(self, input, target, is_training=False):
-        seg, attn, px_log = self.model(input)
-        impbg = 1-torch.sigmoid(-torch.logsumexp(px_log,1, keepdim=True))
-        output = seg.sum((-2,-1))/attn.sum((-2,-1))
-        _attn = torch.tensor(attn.detach(), requires_grad=False)
-        impbg_loss = - (_attn*torch.log(torch.clamp(impbg, 1e-5,1))+(1-_attn)*torch.log(torch.clamp((1-impbg),1e-5,1))).mean()
-        loss = self.criterion(output, target) + impbg_loss
-        eval_update = {'metrics':(output, target),
+        seg, attn, impattn, pred = self.model(input)
+        crit_loss = self.criterion(pred, target)
+        impbg_loss = self.impbgloss(attn, impattn)
+        loss = crit_loss + impbg_loss
+        eval_update = {'metrics':(pred, target),
                         'loss':loss.item(),
                         'criterion':str(self.criterion)}
         self.evaluator.update(**eval_update)
@@ -49,7 +49,7 @@ class ImpBGClassification(ImageClassification):
             self.evaluator.step += 1
             self.saver.loss = loss.item()
             self.logger.summarize_scalars(self.evaluator)
-        return output
+        return pred
 
 
 class ImpBGOOD(OutOfDistribution):
@@ -87,7 +87,7 @@ class ImpBGOOD(OutOfDistribution):
         seg, attn, px_log = self.model(input)
         impbg = 1-torch.sigmoid(-torch.logsumexp(px_log,1, keepdim=True))
         output = seg.sum((-2,-1))/attn.sum((-2,-1))
-        _attn = torch.tensor(attn.detach(), requires_grad=False)
+        _attn = attn.clone().detach().requires_grad_(False)
         impbg_loss = - (_attn*torch.log(torch.clamp(impbg, 1e-5,1))+(1-_attn)*torch.log(torch.clamp((1-impbg),1e-5,1))).mean()
         loss = self.criterion(output, target) + impbg_loss
         eval_update = {'metrics':(output, target),

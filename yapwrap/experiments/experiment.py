@@ -15,6 +15,7 @@
 
 import yapwrap
 from yapwrap.models import *
+from yapwrap.modules import *
 from yapwrap.utils import *
 from yapwrap.dataloaders import *
 import torch
@@ -33,17 +34,19 @@ class Experiment(object):
         self.resumed = False
         self.on_cuda = False
         self.config = config
+        self.visualize_every_n_step = config.get('visualize_every_n_step', None)
         self.name = self.__class__.__name__
         self.experiment_dir = get_experiment_dir(experiment_name, experiment_number)
         self._maybe_resume()
+        self.distributed_config = config.get('distributed_config', None)
         self.logger = yapwrap.utils.Logger(self.experiment_name, self.experiment_dir)
 
         if not isinstance(self.model, nn.Module):
             raise TypeError('{} is not a valid type nn.Module'.format(type(self.model).__name__))
         if not isinstance(self.optimizer, torch.optim.Optimizer):
             raise TypeError('{} is not a valid optimizer'.format(type(self.optimizer).__name__))
-        if not isinstance(self.criterion, nn.modules.loss._Loss):
-            raise TypeError('{} is not a valid criterion'.format(type(self.criterion).__name__))
+        # if not (isinstance(self.criterion, nn.modules.loss._Loss):
+        #     raise TypeError('{} is not a valid criterion'.format(type(self.criterion).__name__))
         if not isinstance(self.evaluator, yapwrap.utils.Evaluator):
             raise TypeError('{} is not a valid yapwrap.utils.Evaluator'.format(type(self.evaluator).__name__))
         if not isinstance(self.dataloader, yapwrap.dataloaders.Dataloader):
@@ -71,8 +74,15 @@ class Experiment(object):
             self.model = model_(**self.config['model']['params'])
             self.model.load_state_dict(state['model_state_dict'])
 
+            ## Criterion
+            criterion_ = getattr(torch.nn, self.config['criterion']['class'])
+            self.config['criterion']['class'] = criterion_
+            self.criterion = criterion_(**self.config['criterion']['params'])
+
+            ## CUDA
             if self.config.get('cuda', False):
-                self.model = nn.DataParallel(self.model).cuda()
+                self.model = nn.DataParallel(self.model)
+                self.model.cuda()
                 self.model.name = self.model.module.name
                 self.on_cuda = True
 
@@ -96,10 +106,6 @@ class Experiment(object):
                 self.config['lr_scheduler']['class'] = lr_scheduler_
             self._init_lr_scheduler()
 
-            ## Criterion
-            criterion_ = getattr(torch.nn, self.config['criterion']['class'])
-            self.config['criterion']['class'] = criterion_
-            self.criterion = criterion_(**self.config['criterion']['params'])
 
             ## Evaluator
             evaluator_ = getattr(yapwrap.utils, self.config['evaluator']['class'])
@@ -117,8 +123,13 @@ class Experiment(object):
             self.model = self.config['model']['class'](**model_config)
             self.config.update({'flops':get_model_complexity_info(self.model,self.dataloader.size, False, True)[0]})
 
+            ## Criterion
+            self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])
+
+            ## CUDA
             if self.config.get('cuda', False):
-                self.model = nn.DataParallel(self.model).cuda()
+                self.model = nn.DataParallel(self.model)
+                self.model.cuda()
                 self.model.name = self.model.module.name
                 self.on_cuda = True
 
@@ -130,9 +141,6 @@ class Experiment(object):
 
             ## Evaluator
             self.evaluator = self.config['evaluator']['class'](num_classes=self.dataloader.num_classes, **self.config['evaluator']['params'])
-
-            ## Criterion
-            self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])
 
             ## Config and Saver
             self.experiment_name = '{}_{}'.format(self.model.name, self.dataloader.name)

@@ -83,13 +83,13 @@ class Bottleneck(nn.Module):
         return out
 
 
-class TinyImpBG(nn.Module):
+class ImpAttn(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
-        super(TinyImpBG, self).__init__()
+        super(ImpAttn, self).__init__()
         self.name = self.__class__.__name__
         self.in_planes = 64
 
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
 
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
@@ -135,7 +135,7 @@ class TinyImpBG(nn.Module):
         s = (x.size(2), x.size(3))
         out = self.bn1(self.conv1(x))
         out = self.layer1(out)
-        low_level = self.upsample(out,s)
+        low_level = out
         if self.training:
             attn1 = self.attn1(out)
         out = self.layer2(out)
@@ -145,14 +145,15 @@ class TinyImpBG(nn.Module):
         if self.training:
             attn3 = self.attn3(out)
         out = self.layer4(out)
+        _s = (out.size(2), out.size(3))
         if self.training:
             attn4 = self.attn4(out)
-        out = self.upsample(out, s)
+        low_level = self.upsample(low_level,_s)
         out = torch.cat((out, low_level), dim=1)
         px_log = self.classify(out)
         _impattn = self.impattn(px_log)
         if self.training:
-            attn = self.attn(torch.cat([self.upsample(x,s) for x in [attn1, attn2, attn3, attn4]],1))
+            attn = self.attn(torch.cat([self.upsample(x,_s) for x in [attn1, attn2, attn3, attn4]],1))
         else:
             attn = _impattn
         out = px_log*attn
@@ -162,6 +163,7 @@ class TinyImpBG(nn.Module):
     def visualize(self, x):
         s = (x.size(2), x.size(3))
         out, attn, impattn, pred = self.pixelwise_classification(x)
+        out, attn, impattn = self.upsample(out,s), self.upsample(attn,s), self.upsample(_impattn,s)
         smax_attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
@@ -258,25 +260,25 @@ class TinyImpBG(nn.Module):
                              # "optimizer_parameters":self.parameters}}
 
 
-def TinyImpBG18(**kwargs):
-    x = TinyImpBG(BasicBlock, [2,2,2,2], **kwargs)
+def ImpAttn18(**kwargs):
+    x = ImpAttn(BasicBlock, [2,2,2,2], **kwargs)
     x.name = "{}18".format(x.name)
     return x
 
-def TinyImpBG34(**kwargs):
-    x = TinyImpBG(BasicBlock, [3,4,6,3], **kwargs)
+def ImpAttn34(**kwargs):
+    x = ImpAttn(BasicBlock, [3,4,6,3], **kwargs)
     x.name = "{}34".format(x.name)
     return x
-def TinyImpBG50(**kwargs):
-    x = TinyImpBG(Bottleneck, [3,4,6,3], **kwargs)
+def ImpAttn50(**kwargs):
+    x = ImpAttn(Bottleneck, [3,4,6,3], **kwargs)
     x.name = "{}50".format(x.name)
     return x
-def TinyImpBG101(**kwargs):
-    x = TinyImpBG(Bottleneck, [3,4,23,3], **kwargs)
+def ImpAttn101(**kwargs):
+    x = ImpAttn(Bottleneck, [3,4,23,3], **kwargs)
     x.name = "{}101".format(x.name)
     return x
-def TinyImpBG152(**kwargs):
-    x = TinyImpBG(Bottleneck, [3,8,36,3], **kwargs)
+def ImpAttn152(**kwargs):
+    x = ImpAttn(Bottleneck, [3,8,36,3], **kwargs)
     x.name = "{}152".format(x.name)
     return x
 

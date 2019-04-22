@@ -6,7 +6,6 @@ __pycache__/
 # C extensions
 *.so
 
-run/
 .idea/
 
 # Distribution / packaging
@@ -109,6 +108,7 @@ venv.bak/
 # data
 data
 examples/data
+examples/run
 datahere
 .#*
 results_dump

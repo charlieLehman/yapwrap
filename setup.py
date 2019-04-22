@@ -32,6 +32,7 @@ setup(
               'yapwrap.experiments',
               'yapwrap.utils',
               'yapwrap.dataloaders',
+              'yapwrap.modules',
               'yapwrap.models'],
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -47,6 +48,8 @@ setup(
         "tqdm",
         "requests",
         "tensorboardX",
+        "tensorboard",
+        "tensorflow"
 ],
      dependency_links=[
     ]
