@@ -45,6 +45,11 @@ class ImageClassification(Experiment):
             self.evaluator.step += 1
             self.saver.loss = loss.item()
             self.logger.summarize_scalars(self.evaluator)
+            if self.visualize_every_n_step is not None:
+                if self.evaluator.step % self.visualize_every_n_step == 0:
+                    viz = getattr(self.model.module,'visualize', None)
+                    if callable(viz) and self.make_logs:
+                        self.logger.summarize_images(viz(input), self.dataloader.name, self.evaluator.step)
         return output
 
     def _epoch(self, data_iter):
@@ -56,9 +61,11 @@ class ImageClassification(Experiment):
                 target = target.cuda()
             output = self._step(input, target)
             tbar.set_description(self.evaluator.tbar_desc(self.saver.epoch))
+
         viz = getattr(self.model.module,'visualize', None)
-        if callable(viz) and self.make_logs:
-            self.logger.summarize_images(viz(input), self.dataloader.name, self.evaluator.step)
+        if callable(viz) and self.make_logs and self.visualize_every_epoch:
+            _input = input[:self.max_visualize_batch] if self.max_visualize_batch is not None else input
+            self.logger.summarize_images(viz(_input), self.dataloader.name, self.evaluator.step)
 
     def train(self, num_epochs, validate=True):
         train_iter = self.dataloader.train_iter()

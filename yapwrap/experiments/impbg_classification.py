@@ -49,6 +49,16 @@ class ImpBGClassification(ImageClassification):
             self.evaluator.step += 1
             self.saver.loss = loss.item()
             self.logger.summarize_scalars(self.evaluator)
+            if self.visualize_every_n_step is not None and self.max_visualize_batch is not None:
+                if self.evaluator.step % self.visualize_every_n_step == 0:
+                    viz = getattr(self.model.module,'visualize', None)
+                    if callable(viz) and self.make_logs:
+                        _inp = input[:self.max_visualize_batch]
+                        _seg = seg[:self.max_visualize_batch]
+                        _attn = attn[:self.max_visualize_batch]
+                        _impattn= impattn[:self.max_visualize_batch]
+                        _pred= pred[:self.max_visualize_batch]
+                        self.logger.summarize_images(viz(_inp,_seg,_attn,_impattn,_pred), self.dataloader.name, self.evaluator.step)
         return pred
 
 

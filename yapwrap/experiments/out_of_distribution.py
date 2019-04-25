@@ -15,7 +15,7 @@
 
 import yapwrap
 from yapwrap.experiments import ImageClassification
-from yapwrap.utils import OODEvaluator
+from yapwrap.evaluators import OODEvaluator
 import torch
 from torch import nn
 import os

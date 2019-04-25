@@ -14,10 +14,6 @@
 # ==============================================================================
 
 import yapwrap
-from yapwrap.models import *
-from yapwrap.modules import *
-from yapwrap.utils import *
-from yapwrap.dataloaders import *
 import torch
 from torch.optim import *
 from torch import nn
@@ -35,11 +31,12 @@ class Experiment(object):
         self.on_cuda = False
         self.config = config
         self.visualize_every_n_step = config.get('visualize_every_n_step', None)
+        self.max_visualize_batch = config.get('max_visualize_batch', None)
+        self.visualize_every_epoch = config.get('visualize_every_epoch', True)
         self.name = self.__class__.__name__
         self.experiment_dir = get_experiment_dir(experiment_name, experiment_number)
         self._maybe_resume()
-        self.distributed_config = config.get('distributed_config', None)
-        self.logger = yapwrap.utils.Logger(self.experiment_name, self.experiment_dir)
+        self.logger = yapwrap.loggers.Logger(self.experiment_name, self.experiment_dir)
 
         if not isinstance(self.model, nn.Module):
             raise TypeError('{} is not a valid type nn.Module'.format(type(self.model).__name__))
@@ -47,10 +44,10 @@ class Experiment(object):
             raise TypeError('{} is not a valid optimizer'.format(type(self.optimizer).__name__))
         # if not (isinstance(self.criterion, nn.modules.loss._Loss):
         #     raise TypeError('{} is not a valid criterion'.format(type(self.criterion).__name__))
-        if not isinstance(self.evaluator, yapwrap.utils.Evaluator):
-            raise TypeError('{} is not a valid yapwrap.utils.Evaluator'.format(type(self.evaluator).__name__))
+        if not isinstance(self.evaluator, yapwrap.evaluators.Evaluator):
+            raise TypeError('{} is not a valid yapwrap.evaluators.Evaluator'.format(type(self.evaluator).__name__))
         if not isinstance(self.dataloader, yapwrap.dataloaders.Dataloader):
-            raise TypeError('{} is not a valid type yapwrap.utils.Dataloader'.format(type(self.dataloader).__name__))
+            raise TypeError('{} is not a valid type yapwrap.dataloaders.Dataloader'.format(type(self.dataloader).__name__))
 
     def _maybe_resume(self):
         r = re.compile('(.*)run\/([^\/]*)\/experiment_(.*)')
@@ -60,11 +57,11 @@ class Experiment(object):
                 raise NotExperimentError(message)
 
             self.experiment_name = self.experiment_dir.split('run/')[-1].split('/experiment')[0]
-            saver_ = yapwrap.utils.Saver(self.experiment_name, self.experiment_dir)
+            saver_ = yapwrap.loggers.Saver(self.experiment_name, self.experiment_dir)
             self.config = saver_.load_config()
 
             ## Saver
-            saver_ = getattr(yapwrap.utils, self.config['saver']['class'])
+            saver_ = getattr(yapwrap.loggers, self.config['saver']['class'])
             self.saver = saver_(experiment_name=self.experiment_name, experiment_dir=self.experiment_dir, **self.config['saver']['params'])
             state = self.saver.resume()
 
@@ -108,7 +105,7 @@ class Experiment(object):
 
 
             ## Evaluator
-            evaluator_ = getattr(yapwrap.utils, self.config['evaluator']['class'])
+            evaluator_ = getattr(yapwrap.evaluators, self.config['evaluator']['class'])
             self.config['evaluator']['class'] = evaluator_
             self.evaluator = evaluator_(num_classes=self.dataloader.num_classes, **self.config['evaluator']['params'])
 
@@ -121,7 +118,7 @@ class Experiment(object):
             model_config = self.config['model']['params']
             model_config.update({'num_classes':self.dataloader.num_classes})
             self.model = self.config['model']['class'](**model_config)
-            self.config.update({'flops':get_model_complexity_info(self.model,self.dataloader.size, False, True)[0]})
+            self.config.update({'flops':yapwrap.utils.get_model_complexity_info(self.model,self.dataloader.size, False, True)[0]})
 
             ## Criterion
             self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])

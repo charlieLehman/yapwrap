@@ -1,14 +1,15 @@
 from yapwrap.experiments import *
 from yapwrap.dataloaders import *
-from yapwrap.utils import *
 from yapwrap.models import *
+from yapwrap.evaluators import *
+from yapwrap.loggers import *
 import torch
 import torch.nn as nn
 
 config = {
     "experiment_dir":'.',
     "dataloader":{
-        "class":ImageFolder,
+        "class":ImageNet,
         "params":{
             "root":"/data/datasets/ImageNet",
             "size":224,
@@ -26,7 +27,7 @@ config = {
     },
     "model":{
         "class":ImpAttn18,
-        # "class":TinyResNet18,
+        # "class":TinyImpAttn18,
         "params":{}
     },
     "lr_scheduler":{
@@ -47,7 +48,9 @@ config = {
                   "metric_name":"Accuracy"}
     },
     "cuda":True,
-    "vizualize_every_n_step":100,
+    "visualize_every_n_step": 10,
+    "max_visualize_batch":4,
+    "visualize_every_epoch":True
     }
 exp = ImpBGClassification(config)
 # exp = ImageClassification(config)

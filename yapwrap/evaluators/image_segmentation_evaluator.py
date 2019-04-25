@@ -18,7 +18,7 @@ from torch import nn
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix
-from yapwrap.utils import Metric,  Evaluator
+from yapwrap.evaluators import Metric,  Evaluator
 
 def to_np(x):
     return x.detach().cpu().numpy()

@@ -18,7 +18,7 @@ from torch import nn
 import torch
 import numpy as np
 from sklearn.metrics import confusion_matrix, roc_auc_score, average_precision_score
-from yapwrap.utils import (Metric,
+from yapwrap.evaluators import (Metric,
                            Evaluator,
                            Accuracy,
                            RunningAccuracy,

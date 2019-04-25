@@ -65,15 +65,18 @@ class Bottleneck(nn.Module):
         return out
 
 
-class TinyResNet(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10):
-        super(TinyResNet, self).__init__()
+class ResNet(nn.Module):
+    def __init__(self, block, num_blocks, num_classes=10, tiny=False):
+        super(ResNet, self).__init__()
         self.name = self.__class__.__name__
         self.in_planes = 64
         self.block = block
         self.num_blocks = num_blocks
         self.num_classes = num_classes
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        if tiny:
+            self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        else:
+            self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
@@ -102,7 +105,6 @@ class TinyResNet(nn.Module):
         return out
 
     def visualize(self, x):
-
         viz_dict = {}
         out = self.forward(x)
         mhp = HistPlot(title='Model Logit Response',
@@ -150,26 +152,49 @@ class TinyResNet(nn.Module):
                                 "params":_params}}
 
 
+def ResNet18(**kwargs):
+    x = ResNet(BasicBlock, [2,2,2,2], **kwargs)
+    x.name = "{}18".format(x.name)
+    return x
+
+def ResNet34(**kwargs):
+    x = ResNet(BasicBlock, [3,4,6,3], **kwargs)
+    x.name = "{}34".format(x.name)
+    return x
+
+def ResNet50(**kwargs):
+    x = ResNet(Bottleneck, [3,4,6,3], **kwargs)
+    x.name = "{}50".format(x.name)
+    return x
+
+def ResNet101(**kwargs):
+    x.name = "{}101".format(x.name)
+    return ResNet(Bottleneck, [3,4,23,3], **kwargs)
+
+def ResNet152(**kwargs):
+    x.name = "{}152".format(x.name)
+    return ResNet(Bottleneck, [3,8,36,3], **kwargs)
+
 def TinyResNet18(**kwargs):
-    x = TinyResNet(BasicBlock, [2,2,2,2], **kwargs)
+    x = ResNet(BasicBlock, [2,2,2,2], tiny=True, **kwargs)
     x.name = "{}18".format(x.name)
     return x
 
 def TinyResNet34(**kwargs):
-    x = TinyResNet(BasicBlock, [3,4,6,3], **kwargs)
+    x = ResNet(BasicBlock, [3,4,6,3], tiny=True, **kwargs)
     x.name = "{}34".format(x.name)
     return x
 
 def TinyResNet50(**kwargs):
-    x = TinyResNet(Bottleneck, [3,4,6,3], **kwargs)
+    x = ResNet(Bottleneck, [3,4,6,3], tiny=True, **kwargs)
     x.name = "{}50".format(x.name)
     return x
 
 def TinyResNet101(**kwargs):
     x.name = "{}101".format(x.name)
-    return TinyResNet(Bottleneck, [3,4,23,3], **kwargs)
+    return ResNet(Bottleneck, [3,4,23,3], tiny=True, **kwargs)
 
 def TinyResNet152(**kwargs):
     x.name = "{}152".format(x.name)
-    return TinyResNet(Bottleneck, [3,8,36,3], **kwargs)
+    return ResNet(Bottleneck, [3,8,36,3], tiny=True, **kwargs)
 

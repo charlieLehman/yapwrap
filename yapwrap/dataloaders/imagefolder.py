@@ -10,7 +10,7 @@ def to_np(x):
     return x.detach().cpu().numpy()
 
 class ImageFolder(Dataloader):
-    def __init__(self, root, size=224, batch_sizes={'train':64,'test':50}, transforms={'train':None, 'test':None}):
+    def __init__(self, root, size, batch_sizes, transforms={'train':None, 'test':None}):
         super(ImageFolder, self).__init__(root, size, batch_sizes, transforms)
         self.root = root
         self._class_names = os.listdir(os.path.join(self.root, 'train'))
@@ -28,7 +28,8 @@ class ImageFolder(Dataloader):
         self.test_batch_size = batch_sizes['test']
         if transforms['test'] is None:
             self.test_transform = tvtfs.Compose([
-                tvtfs.Resize(self.size),
+                tvtfs.Resize([int(x*1.14) for x in self.size]),
+                tvtfs.CenterCrop(self.size),
                 tvtfs.ToTensor(),
                 tvtfs.Normalize((0.485, 0.456, 0.4406), (0.229, 0.224, 0.225)),
             ])
@@ -71,4 +72,8 @@ class ImageFolder(Dataloader):
         p.update({'num_classes':self.num_classes})
         p.update({'sample_indices':self.example_indices})
         return p
+
+class ImageNet(ImageFolder):
+    def __init__(self, root, size=224, batch_sizes={'train':256,'test':100}, transforms={'train':None, 'test':None}):
+        super(ImageNet, self).__init__(root, size, batch_sizes, transforms)
 
