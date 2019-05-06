@@ -19,7 +19,7 @@ class CIFAR10(Dataloader):
         if transforms['train'] is None:
             self.train_transform = tvtfs.Compose([
                 tvtfs.Resize(self.size),
-                tvtfs.RandomCrop(size, padding=4),
+                # tvtfs.RandomCrop(size, padding=4),
                 tvtfs.RandomHorizontalFlip(),
                 # tvtfs.RandomAffine(25,(.1,.1),(.9,1.1), resample=3),
                 tvtfs.ToTensor(),

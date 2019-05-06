@@ -10,17 +10,15 @@ import torch.nn as nn
 config = {
     "experiment_dir":'.',
     "dataloader":{
-        "class":FlickerClean,
+        "class":CIFAR10,
         "params":{
-            "root":"/data/datasets/FlickrClean",
             "size":32,
             "batch_sizes":{
             "train":128,
-            "test":100,
-        }}
+            "test":100,}
+            }
     },
     "model":{
-        # "class":ImpAttn18,
         "class":TinyImpAttn18,
         "params":{
             "optimizer_config":{
@@ -47,11 +45,8 @@ config = {
         "params":{"T_max":90}
     },
     "criterion":{
-        "class":FocalLoss,
-        "params":{
-            "gamma":1,
-            "alpha":None,
-        }
+        "class":nn.CrossEntropyLoss,
+        "params":{}
     },
     "evaluator":{
         "class":ImageClassificationEvaluator,
@@ -68,4 +63,5 @@ config = {
     "visualize_every_epoch":True,
     }
 exp = ImpBGClassification(config)
+# exp = ImageClassification(config)
 exp.train(90)

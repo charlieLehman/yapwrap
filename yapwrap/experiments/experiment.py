@@ -159,13 +159,13 @@ class Experiment(object):
     def _init_optimizer(self):
         _model = self.model.module if self.on_cuda else self.model
 
-        if self.config.get('optimizer', None) is None:
-            if not hasattr(_model, 'default_optimizer_config'):
-                raise NotImplementedError('{} does not have a default_optimizer, either define one in the model or provide an optimizer configuration in the experiment config.'.format(_model.name))
-            self.config.update(_model.default_optimizer_config)
+        if not hasattr(_model, 'optimizer_config'):
+            raise NotImplementedError('{} does not have a optimizer_config.'.format(_model.name))
 
-        model_params = getattr(_model, 'default_optimizer_parameters', self.model.parameters)()
-        self.optimizer = self.config['optimizer']['class'](model_params, **self.config['optimizer']['params'])
+        _opt_conf = _model.optimizer_config
+        _opt = _opt_conf['class']
+        model_params = getattr(_model, 'optimizer_parameters', self.model.parameters)()
+        self.optimizer = _opt(model_params, **_opt_conf['params'])
 
 
     def save(self):
