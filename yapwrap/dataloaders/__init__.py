@@ -6,5 +6,4 @@ from .svhn import *
 from .noise import *
 from .tiny_imagenet import *
 from .ood_dataloaders import *
-from .pascal_voc import *
 from .imagefolder import *
