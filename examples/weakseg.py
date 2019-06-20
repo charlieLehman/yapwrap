@@ -13,15 +13,15 @@ config = {
         "class":FlickerClean,
         "params":{
             "root":"/data/datasets/FlickrClean",
-            "size":32,
+            "size":224,
             "batch_sizes":{
-            "train":128,
+            "train":100,
             "test":100,
         }}
     },
     "model":{
-        # "class":ImpAttn18,
-        "class":TinyImpAttn18,
+        "class":ImpAttn50,
+        # "class":TinyImpAttn18,
         "params":{
             "optimizer_config":{
                 "class_params":{
@@ -63,8 +63,8 @@ config = {
                   "metric_name":"Accuracy"}
     },
     "cuda":True,
-    "visualize_every_n_step":None,
-    "max_visualize_batch":None,
+    "visualize_every_n_step":20,
+    "max_visualize_batch":16,
     "visualize_every_epoch":True,
     }
 exp = ImpBGClassification(config)

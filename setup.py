@@ -52,6 +52,7 @@ setup(
         "requests",
         "tensorboardX",
         "tensorboard",
+        "googledrivedownloader",
         "tensorflow"
 ],
      dependency_links=[

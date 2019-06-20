@@ -58,8 +58,8 @@ config = {
                   "metric_name":"Accuracy"}
     },
     "cuda":True,
-    "visualize_every_n_step":None,
-    "max_visualize_batch":None,
+    "visualize_every_n_step":50,
+    "max_visualize_batch":100,
     "visualize_every_epoch":True,
     }
 exp = ImpBGClassification(config)

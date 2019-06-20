@@ -9,7 +9,7 @@ import inspect
 
 
 config = lambda model, dataloader, ood_dataloaders, num_epochs: {
-    "experiment_dir":'/media/advait/DATA/Advait/Handouts_and_assignments/Spring_2019_coursework/yapwrap/run/TinyAttention18_CIFAR10',
+    "experiment_dir":'.',
     "dataloader":{
         "class":dataloader,
         "params":{}

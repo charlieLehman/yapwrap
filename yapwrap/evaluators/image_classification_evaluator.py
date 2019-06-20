@@ -30,9 +30,12 @@ class RunningAccuracy(Metric):
         self.num_examples = 0
 
     def forward(self, output, target):
-        prediction = output.argmax(1)
-        self.correct += prediction.eq(target).sum().item()
         self.num_examples += target.size(0)
+        if output.size(1) > 1:
+            prediction = output.argmax(1)
+        else:
+            prediction = (output >= 0.5).int()
+        self.correct += prediction.eq(target.int()).sum().item()
         acc = self.correct/self.num_examples
         return {'Accuracy':acc}
 
@@ -45,8 +48,11 @@ class Accuracy(Metric):
         super(Accuracy, self).__init__()
 
     def forward(self, output, target):
-        prediction = output.argmax(1)
-        val = (prediction.eq(target)).float().mean().item()
+        if output.size(1) > 1:
+            prediction = output.argmax(1)
+        else:
+            prediction = (output >= 0.5).int()
+        val = (prediction.eq(target.int())).float().mean().item()
         return {'Accuracy':val}
 
 class RunningErrorRate(RunningAccuracy):

@@ -48,8 +48,7 @@ class ASPPBlock(nn.Module):
                                              nn.BatchNorm2d(in_planes*2))
         self.conv = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(in_planes*2*(len(dilations)+1), out_planes, kernel_size=3, padding=1),
-            nn.BatchNorm2d(out_planes)
+            nn.Conv2d(in_planes*2*(len(dilations)+1), out_planes, kernel_size=1, padding=0),
         )
 
     def forward(self, x):
@@ -67,24 +66,27 @@ class ASPPBlock(nn.Module):
 class AttentionBlock(nn.Module):
     def __init__(self, in_planes, dilations):
         super(AttentionBlock, self).__init__()
-        self.aspp = ASPPBlock(in_planes, 256, dilations)
         self.conv = nn.Sequential(
             nn.ReLU(),
-            nn.Conv2d(256+in_planes, 256, 3, padding=1, bias=False),
+            nn.Conv2d(in_planes, 256, 3, padding=1, stride=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(),
-            nn.Dropout(0.5),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(256, 512, kernel_size=5, padding=2, stride=1, bias=False),
+            nn.BatchNorm2d(512),
             nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Conv2d(256, 1, kernel_size=1, stride=1, bias=False),
+            nn.Conv2d(512, 512, kernel_size=7, padding=3, stride=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.Conv2d(512, 1, kernel_size=1, padding=0, stride=1, bias=False),
         )
+        # self.conv = ASPPBlock(in_planes, 1, dilations)
+        self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
 
     def forward(self, x):
-        out = self.aspp(x)
-        out = torch.cat((out, x),1)
-        out = self.conv(out)
+        s = (x.size(2), x.size(3))
+        out = self.upsample(x,16)
+        out = self.conv(x)
+        out = self.upsample(out,s)
         return out
 
 class Bottleneck(nn.Module):
@@ -129,11 +131,10 @@ class ImpAttn(nn.Module):
                 nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
         self.bn1 = nn.BatchNorm2d(64)
         self.tiny = tiny
-        dilations = [1,2,4] if self.tiny else [1,6,12,18]
-
+        dilations = [1,2,4] if self.tiny else [1,12,24,36]
 
         self.attn = nn.Sequential(
-            AttentionBlock(64,dilations),
+            AttentionBlock(3,dilations),
             nn.Sigmoid()
             )
 
@@ -181,11 +182,11 @@ class ImpAttn(nn.Module):
 
     def pixelwise_classification(self, x):
         s = (x.size(2), x.size(3))
+        if self.training:
+            attn = self.attn(x)
         out = self.bn1(self.conv1(x))
         _s = (out.size(2), out.size(3))
         low_level = out
-        if self.training:
-            attn = self.attn(out)
         out = self.layer1(out)
         out = self.layer2(out)
         out = self.layer3(out)
@@ -276,7 +277,7 @@ class ImpAttn(nn.Module):
         return self.pixelwise_classification(x)
 
     def get_class_params(self):
-        modules = [self.layer1, self.layer2, self.layer3, self.layer4, self.conv1, self.bn1, self.classify]
+        modules = [self.layer1, self.layer2, self.layer3, self.layer4, self.conv1, self.bn1, self.classify, self.aspp]
         for i in range(len(modules)):
             for m in modules[i].named_modules():
                 if isinstance(m[1], nn.Conv2d) or isinstance(m[1], nn.BatchNorm2d):
