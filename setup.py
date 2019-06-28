@@ -32,6 +32,7 @@ setup(
               'yapwrap.experiments',
               'yapwrap.utils',
               'yapwrap.dataloaders',
+              'yapwrap.dataloaders.transforms',
               'yapwrap.evaluators',
               'yapwrap.loggers',
               'yapwrap.dataloaders.yapwrap_transforms',
