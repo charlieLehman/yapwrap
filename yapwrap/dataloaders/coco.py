@@ -8,7 +8,7 @@ from pycocotools import mask
 import torchvision.transforms as tvtfs
 from PIL import Image, ImageFile
 from yapwrap.dataloaders import *
-import yapwrap.dataloaders.transforms as tfs
+import yapwrap.dataloaders.yapwrap_transforms as tfs
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 

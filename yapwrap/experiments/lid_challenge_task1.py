@@ -15,21 +15,29 @@
 
 import yapwrap
 from yapwrap.experiments import ImageClassification
+from yapwrap.modules import *
 import torch
 from torch import nn
 import os
 import glob
 from tqdm import tqdm
 
-class ImageSaliency(ImageClassification):
-    """Image Segmentation Design Pattern
+class LIDChallengeTask1(ImageClassification):
+    """LID Challenge Task 1
     """
     def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
-        super(ImageSaliency, self).__init__(config, experiment_name, experiment_number, cuda)
+        super(LIDChallengeTask1, self).__init__(config, experiment_name, experiment_number, cuda)
+        self.impbgloss = ImplicitAttentionLoss()
 
     def _step(self, input, target, is_training=False):
-        output = self.model(input)
-        loss = self.criterion(output, target)
+        out, attn, impattn, pred = self.model(input)
+        if self.model.training:
+            output = pred
+        else:
+            output = out
+        crit_loss = self.criterion(output, target)
+        impbg_loss = self.impbgloss(attn, impattn)
+        loss = crit_loss + impbg_loss
         eval_update = {'metrics':(output, target),
                         'loss':loss.item(),
                         'criterion':str(self.criterion)}

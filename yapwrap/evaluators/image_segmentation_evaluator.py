@@ -67,44 +67,6 @@ class RunningmIOU(Metric):
         self.intersection = np.zeros(self.num_classes)
         self.union = np.zeros(self.num_classes)
 
-class RunningFBetaScore(Metric):
-    def __init__(self, beta=np.sqrt(3)):
-        super(RunningFBetaScore, self).__init__()
-        self.targets = []
-        self.predictions = []
-        self.beta = beta
-
-    def forward(self, output, target):
-        if output.size(1) > 1:
-            pred = output.argmax(1).view(-1)
-        else:
-            pred = (output >= 0.5).view(-1)
-        self.targets.append(target.view(-1))
-        self.predictions.append(pred)
-        return {'f_beta':fbeta_score(to_np(torch.cat(self.targets)),
-                                      to_np(torch.cat(self.predictions)), self.beta)}
-
-    def reset(self):
-        self.intersection = []
-        self.union = []
-
-class FBetaScore(Metric):
-    def __init__(self, beta=np.sqrt(3)):
-        super(FBetaScore, self).__init__()
-        self.beta = beta
-
-    def forward(self, output, target):
-        if output.size(1) > 1:
-            pred = output.argmax(1).view(-1)
-        else:
-            pred = (output >= 0.5).view(-1)
-        targets = target.view(-1)
-        return {'f_beta':fbeta_score(to_np(targets), to_np(pred), self.beta)}
-
-    def reset(self):
-        self.intersection = []
-        self.union = []
-
 class RunningAccuracy(Metric):
     def __init__(self):
         super(RunningAccuracy, self).__init__()
@@ -144,7 +106,6 @@ class ImageSegmentationEvaluator(Evaluator):
             {
                 'mIOU':mIOU(num_classes),
                 'Accuracy':Accuracy(),
-                'FBeta':FBetaScore(),
             },
             'validation':
             {

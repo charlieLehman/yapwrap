@@ -34,7 +34,8 @@ setup(
               'yapwrap.dataloaders',
               'yapwrap.evaluators',
               'yapwrap.loggers',
-              'yapwrap.dataloaders.transforms',
+              'yapwrap.dataloaders.yapwrap_transforms',
+              'yapwrap.models.poolnet',
               'yapwrap.modules',
               'yapwrap.models'],
     classifiers=[

@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import math
 from torch.autograd import Variable
 import numpy as np
+import torch.utils.model_zoo as model_zoo
 
 from .deeplab_resnet import resnet50_locate
 from .vgg import vgg16_locate
@@ -96,6 +97,7 @@ class PoolNet(nn.Module):
         self.score = score_layers
         if self.base_model_cfg == 'resnet':
             self.convert = convert_layers
+        self._load_pretrained_model()
 
     def forward(self, x):
         x_size = x.size()
@@ -111,7 +113,38 @@ class PoolNet(nn.Module):
 
         merge = self.deep_pool[-1](merge)
         merge = self.score(merge, x_size)
+        merge = torch.sigmoid(merge)
         return merge
+
+    def optimizer_parameters(self):
+        return self.parameters()
+
+    @property
+    def optimizer_config(self):
+        return {"class":torch.optim.Adam,
+                "params":{"lr":5e-5,
+                          "weight_decay":5e-4}
+                }
+        # return {"class":torch.optim.SGD,
+        #         "params":{"lr":0.1,
+        #                 "momentum":0.9,
+        #                       "nesterov":True}
+        #         }
+
+    def visualize(self, x, target):
+        out = self.forward(x)
+        x -= x.min()
+        x /= x.max()
+        viz_dict = {'Input':x,
+                    'Attention':out,
+                    'Ground Truth':target,
+        }
+
+        return viz_dict
+
+    def _load_pretrained_model(self):
+        pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet50-19c8e357.pth')
+        self.base.load_pretrained_model(pretrain_dict)
 
 def build_model(base_model_cfg='vgg'):
     if base_model_cfg == 'vgg':
@@ -124,3 +157,9 @@ def weights_init(m):
         m.weight.data.normal_(0, 0.01)
         if m.bias is not None:
             m.bias.data.zero_()
+
+def PoolNetResNet50(**kwargs):
+    x = PoolNet('resnet', *extra_layer('resnet', resnet50_locate()))
+    x.name = "PoolNetResNet50"
+    return x
+

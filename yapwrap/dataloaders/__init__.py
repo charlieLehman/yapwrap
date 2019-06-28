@@ -6,6 +6,8 @@ from .svhn import *
 from .noise import *
 from .tiny_imagenet import *
 from .ood_dataloaders import *
+from .duts import *
+from .msrab import *
 from .pascal_voc import *
 from .imagefolder import *
-from .msrab import *
+from .lid_challenge import *

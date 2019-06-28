@@ -200,4 +200,6 @@ class ResNet_locate(nn.Module):
 
 def resnet50_locate():
     model = ResNet_locate(Bottleneck, [3, 4, 6, 3])
+    # for param in model.parameters():
+    #     param.requires_grad = False
     return model

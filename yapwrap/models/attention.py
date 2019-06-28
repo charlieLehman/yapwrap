@@ -67,8 +67,6 @@ class Attention(nn.Module):
             outs.append(self.upsample(out,s))
         outs.append(self.fuse(torch.relu(torch.cat(outs,1))))
         output = torch.sigmoid(torch.stack(outs))
-        print(len(outs))
-        print(output.shape)
         return output
 
     def optimizer_parameters(self):

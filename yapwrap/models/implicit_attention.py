@@ -6,6 +6,7 @@ from matplotlib import colors
 from matplotlib import pyplot as plt
 from yapwrap.utils import HistPlot, GradCAM
 from yapwrap.modules import ImplicitComplement, ImplicitAttention
+from .poolnet import PoolNetResNet50
 import numpy as np
 import math
 
@@ -116,9 +117,8 @@ class Bottleneck(nn.Module):
         out += self.shortcut(x)
         return out
 
-
 class ImpAttn(nn.Module):
-    def __init__(self, block, num_blocks, num_classes=10, tiny=False, optimizer_config=None, pretrained=False):
+    def __init__(self, block, num_blocks, pretrained_attn_path=None, num_classes=10, tiny=False, optimizer_config=None, pretrained=True):
         super(ImpAttn, self).__init__()
         self.name = self.__class__.__name__
         self.in_planes = 64
@@ -133,10 +133,6 @@ class ImpAttn(nn.Module):
         self.tiny = tiny
         dilations = [1,2,4] if self.tiny else [1,12,24,36]
 
-        self.attn = nn.Sequential(
-            AttentionBlock(3,dilations),
-            nn.Sigmoid()
-            )
 
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
@@ -161,15 +157,23 @@ class ImpAttn(nn.Module):
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes
 
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                torch.nn.init.kaiming_normal_(m.weight)
-            elif isinstance(m, nn.BatchNorm2d):
-                m.weight.data.fill_(1)
-                m.bias.data.zero_()
         if pretrained:
             self._load_pretrained_model()
+        else:
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    torch.nn.init.kaiming_normal_(m.weight)
+                elif isinstance(m, nn.BatchNorm2d):
+                    m.weight.data.fill_(1)
+                    m.bias.data.zero_()
+
+        self.attn = PoolNetResNet50()
+        state = torch.load(pretrained_attn_path)
+        self.attn.load_state_dict(state['model_state_dict'])
+        for param in self.attn.parameters():
+            param.requires_grad = False
+
         self.initialize_optimization_parameters(optimizer_config)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -198,16 +202,17 @@ class ImpAttn(nn.Module):
         _impattn = self.impattn(px_log)
         if not self.training:
             attn = _impattn
+        attn = self.upsample(attn, _s)
         out = px_log*attn
         pred = out.sum((-2,-1))/attn.sum((-2,-1))
         return out, attn, _impattn, pred
 
+    def forward(self, x):
+        return self.pixelwise_classification(x)
+
     def visualize(self, *input):
-        if len(input)==1:
-            x = input[0]
-            out, attn, impattn, pred = self.pixelwise_classification(x)
-        else:
-            x, out, attn, impattn, pred = input
+        x, target = input
+        out, attn, impattn, pred = self.pixelwise_classification(x)
         s = (x.size(2), x.size(3))
         out, attn, impattn = self.upsample(out,s), self.upsample(attn,s), self.upsample(impattn,s)
         smax_attn = torch.softmax(out,1).max(1,keepdim=True)[0]
@@ -273,9 +278,6 @@ class ImpAttn(nn.Module):
             rgb_ims.append(colors.hsv_to_rgb(x))
         return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
 
-    def forward(self, x):
-        return self.pixelwise_classification(x)
-
     def get_class_params(self):
         modules = [self.layer1, self.layer2, self.layer3, self.layer4, self.conv1, self.bn1, self.classify, self.aspp]
         for i in range(len(modules)):
@@ -285,21 +287,10 @@ class ImpAttn(nn.Module):
                         if p.requires_grad:
                             yield p
 
-    def get_attn_params(self):
-        modules = [self.attn]
-        for i in range(len(modules)):
-            for m in modules[i].named_modules():
-                if isinstance(m[1], nn.Conv2d) or isinstance(m[1], nn.BatchNorm2d):
-                    for p in m[1].parameters():
-                        if p.requires_grad:
-                            yield p
-
     def initialize_optimization_parameters(self, optimizer_config):
         cp = dict(optimizer_config['class_params'])
-        ap = dict(optimizer_config['attention_params'])
         cp['params'] = self.get_class_params()
-        ap['params'] = self.get_attn_params()
-        self._optimizer_parameters = [cp,ap]
+        self._optimizer_parameters = [cp]
         self._default_optimizer_config = dict(optimizer_config['optimizer'])
 
     def optimizer_parameters(self):
@@ -310,7 +301,9 @@ class ImpAttn(nn.Module):
         return self._default_optimizer_config
 
     def _load_pretrained_model(self):
-        pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet18-5c106cde.pth')
+        # pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet18-5c106cde.pth')
+        print("Loading ResNet50")
+        pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet50-19c8e357.pth')
         model_dict = {}
         state_dict = self.state_dict()
         for k, v in pretrain_dict.items():

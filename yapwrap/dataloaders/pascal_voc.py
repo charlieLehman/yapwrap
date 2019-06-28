@@ -7,7 +7,7 @@ from yapwrap.dataloaders import Dataloader
 from torch.utils.data import DataLoader
 import torch
 from yapwrap.dataloaders import *
-import yapwrap.dataloaders.transforms as tfs
+import yapwrap.dataloaders.yapwrap_transforms as tfs
 
 class_list = ['aeroplane', 'bicycle', 'bird', 'boat','bottle',
               'bus', 'car', 'cat', 'chair','cow', 'diningtable',

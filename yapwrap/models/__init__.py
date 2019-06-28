@@ -8,7 +8,7 @@ from .alexnet import *
 from .segnet import *
 from .attention import *
 from .dssnet import DSSNet
-from .poolnet import PoolNet
+from .poolnet import PoolNetResNet50
 
 def ComplementConstraintTinyAttention18(num_classes=10):
     return ComplementConstraint(TinyAttention18(num_classes=num_classes))

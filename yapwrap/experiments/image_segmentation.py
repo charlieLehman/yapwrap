@@ -28,11 +28,8 @@ class ImageSegmentation(ImageClassification):
         super(ImageSegmentation, self).__init__(config, experiment_name, experiment_number, cuda)
 
     def _step(self, input, target, is_training=False):
-        outputs = self.model(input)
-        output = outputs[-1]
-        targets = torch.stack([target for _ in range(outputs.size(0))])
-        print(outputs.shape, targets.shape)
-        loss = self.criterion(outputs, targets)
+        output = self.model(input)
+        loss = self.criterion(output, target)
         eval_update = {'metrics':(output, target),
                         'loss':loss.item(),
                         'criterion':str(self.criterion)}

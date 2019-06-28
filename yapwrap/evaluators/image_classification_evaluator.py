@@ -51,8 +51,8 @@ class Accuracy(Metric):
         if output.size(1) > 1:
             prediction = output.argmax(1)
         else:
-            prediction = (output >= 0.5).int()
-        val = (prediction.eq(target.int())).float().mean().item()
+            prediction = (output >= 0.5).long()
+        val = (prediction.eq(target.long())).float().mean().item()
         return {'Accuracy':val}
 
 class RunningErrorRate(RunningAccuracy):

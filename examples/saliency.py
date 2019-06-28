@@ -7,6 +7,8 @@ from yapwrap.loggers import *
 import torch
 import torch.nn as nn
 
+
+
 config = {
     "experiment_dir":'.',
     "dataloader":{
@@ -16,30 +18,30 @@ config = {
             "size":224,
             "batch_sizes":{
             "train":20,
-            "validation":10,
+            "validation":20,
             "test":10,}
         }
     },
     "model":{
-        "class":Attention,
+        "class":PoolNetResNet50,
         "params":{}
     },
     "lr_scheduler":{
         "class":torch.optim.lr_scheduler.CosineAnnealingLR,
-        "params":{"T_max":100}
+        "params":{"T_max":24}
     },
     "criterion":{
         "class":nn.BCELoss,
-        "params":{}
+        "params":{"reduction":"sum"}
     },
     "evaluator":{
-        "class":ImageSegmentationEvaluator,
+        "class":ImageSaliencyEvaluator,
         "params":{}
     },
     "saver":{
         "class":BestMetricSaver,
         "params":{"metric_set":"validation",
-                  "metric_name":"mIOU"}
+                  "metric_name":"FBeta"}
     },
     "cuda":True,
     "visualize_every_n_step":None,
@@ -47,4 +49,4 @@ config = {
     "visualize_every_epoch":True,
     }
 exp = ImageSegmentation(config)
-exp.train(100)
+exp.train(24)

@@ -3,7 +3,7 @@ import torchvision.datasets as dset
 from PIL import Image, ImageOps, ImageFilter
 from torch.utils.data import DataLoader
 from yapwrap.dataloaders import Dataloader
-from yapwrap.dataloaders.transforms import RandomNegative
+from yapwrap.dataloaders.yapwrap_transforms import RandomNegative
 import numpy as np
 import torch
 import os
