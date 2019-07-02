@@ -13,11 +13,11 @@ import math
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, in_planes, planes, stride=1):
+    def __init__(self, in_planes, planes, stride=1, dilation=1):
         super(BasicBlock, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, padding=dilation, dilation=dilation, bias=False)
         self.bn2 = nn.BatchNorm2d(planes)
 
         self.shortcut = nn.Sequential()
@@ -93,11 +93,12 @@ class AttentionBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
 
-    def __init__(self, in_planes, planes, stride=1):
+    def __init__(self, in_planes, planes, stride=1, dilation=1):
         super(Bottleneck, self).__init__()
+        self.dilation=dilation
         self.conv1 = nn.Conv2d(in_planes, planes, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride, padding=dilation, bias=False, dilation=dilation)
         self.bn2 = nn.BatchNorm2d(planes)
         self.conv3 = nn.Conv2d(planes, self.expansion*planes, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(self.expansion*planes)
@@ -131,13 +132,12 @@ class ImpAttn(nn.Module):
                 nn.MaxPool2d(kernel_size=3, stride=2, padding=1))
         self.bn1 = nn.BatchNorm2d(64)
         self.tiny = tiny
-        dilations = [1,2,4] if self.tiny else [1,12,24,36]
+        dilations = [1,2,4] if self.tiny else [1,6,12,18]
 
-
-        self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
-        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
+        self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1, dilation=1)
+        self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2, dilation=1)
+        self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2, dilation=1)
+        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=1, dilation=2)
         self.impattn = ImplicitAttention(1,True)
 
         self.aspp = ASPPBlock(512*block.expansion,256,dilations)
@@ -176,11 +176,11 @@ class ImpAttn(nn.Module):
 
         self.initialize_optimization_parameters(optimizer_config)
 
-    def _make_layer(self, block, planes, num_blocks, stride):
+    def _make_layer(self, block, planes, num_blocks, stride, dilation):
         strides = [stride] + [1]*(num_blocks-1)
         layers = []
         for stride in strides:
-            layers.append(block(self.in_planes, planes, stride))
+            layers.append(block(self.in_planes, planes, stride, dilation))
             self.in_planes = planes * block.expansion
         return nn.Sequential(*layers)
 
@@ -279,7 +279,16 @@ class ImpAttn(nn.Module):
         return torch.from_numpy(np.stack(rgb_ims)).permute(0,3,1,2)
 
     def get_class_params(self):
-        modules = [self.layer1, self.layer2, self.layer3, self.layer4, self.conv1, self.bn1, self.classify, self.aspp]
+        modules = [self.layer1, self.layer2, self.layer3, self.layer4, self.conv1, self.bn1]
+        for i in range(len(modules)):
+            for m in modules[i].named_modules():
+                if isinstance(m[1], nn.Conv2d) or isinstance(m[1], nn.BatchNorm2d):
+                    for p in m[1].parameters():
+                        if p.requires_grad:
+                            yield p
+
+    def get_10x_params(self):
+        modules = [self.classify, self.aspp]
         for i in range(len(modules)):
             for m in modules[i].named_modules():
                 if isinstance(m[1], nn.Conv2d) or isinstance(m[1], nn.BatchNorm2d):
@@ -289,8 +298,10 @@ class ImpAttn(nn.Module):
 
     def initialize_optimization_parameters(self, optimizer_config):
         cp = dict(optimizer_config['class_params'])
+        ap = dict(optimizer_config['10x_params'])
         cp['params'] = self.get_class_params()
-        self._optimizer_parameters = [cp]
+        ap['params'] = self.get_10x_params()
+        self._optimizer_parameters = [cp, ap]
         self._default_optimizer_config = dict(optimizer_config['optimizer'])
 
     def optimizer_parameters(self):
