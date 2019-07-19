@@ -30,12 +30,12 @@ class Experiment(object):
         self.resumed = False
         self.on_cuda = False
         self.config = config
-        self.visualize_every_n_step = config.get('visualize_every_n_step', None)
-        self.max_visualize_batch = config.get('max_visualize_batch', None)
-        self.visualize_every_epoch = config.get('visualize_every_epoch', True)
         self.name = self.__class__.__name__
         self.experiment_dir = get_experiment_dir(experiment_name, experiment_number)
         self._maybe_resume()
+        self.visualize_every_n_step = config.get('visualize_every_n_step', None)
+        self.max_visualize_batch = config.get('max_visualize_batch', None)
+        self.visualize_every_epoch = config.get('visualize_every_epoch', True)
         self.logger = yapwrap.loggers.Logger(self.experiment_name, self.experiment_dir)
 
         if not isinstance(self.model, nn.Module):
@@ -118,7 +118,11 @@ class Experiment(object):
             model_config = self.config['model']['params']
             model_config.update({'num_classes':self.dataloader.num_classes})
             self.model = self.config['model']['class'](**model_config)
-            self.config.update({'flops':yapwrap.utils.get_model_complexity_info(self.model,self.dataloader.size, False, True)[0]})
+            try:
+                self.config.update({'flops':yapwrap.utils.get_model_complexity_info(self.model,self.dataloader.size, False, True)[0]})
+
+            except:
+                pass
 
             ## Criterion
             self.criterion = self.config['criterion']['class'](**self.config['criterion']['params'])

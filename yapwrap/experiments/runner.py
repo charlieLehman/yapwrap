@@ -24,21 +24,19 @@ import requests
 from io import BytesIO
 from PIL import Image
 
-class Runner(object):
-    def __init__(self, experiment_name, experiment_number):
-
+def Runner(experiment_name, experiment_number, **kwargs):
         experiment_dir = get_experiment_dir(experiment_name, experiment_number)
         saver_ = yapwrap.loggers.Saver(experiment_name, experiment_dir)
-        self.config = saver_.load_config()
+        config = saver_.load_config()
         state = torch.load(os.path.join(experiment_dir, 'checkpoint.pth.tar'))
-        model_ = getattr(yapwrap.models, self.config['model']['class'])
-        self.model = model_(**self.config['model']['params'])
-        self.model.load_state_dict(state['model_state_dict'])
-        if self.config.get('cuda', False):
-            self.model = nn.DataParallel(self.model)
-            self.model.cuda()
-            self.model.name = self.model.module.name
-            self.on_cuda = True
+        model_ = kwargs.get('model', None)
+        if model_ is None:
+            model_ = getattr(yapwrap.models, config['model']['class'])
+        model = model_(**config['model']['params'])
+        model.load_state_dict(state['model_state_dict'])
+        if config.get('cuda', False):
+            model = nn.DataParallel(model)
+            model.cuda()
+            model.name = model.module.name
+        return model
 
-    def __call__(self, input):
-        return self.model(input)
