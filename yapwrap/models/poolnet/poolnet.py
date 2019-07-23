@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import numpy as np
 import torch.utils.model_zoo as model_zoo
 
-from .deeplab_resnet import resnet50_locate
+from .deeplab_resnet import resnet50_locate, tinyresnet18_locate
 from .vgg import vgg16_locate
 
 
@@ -97,7 +97,7 @@ class PoolNet(nn.Module):
         self.score = score_layers
         if self.base_model_cfg == 'resnet':
             self.convert = convert_layers
-        self._load_pretrained_model()
+        # self._load_pretrained_model()
 
     def forward(self, x):
         x_size = x.size()
@@ -157,6 +157,11 @@ def weights_init(m):
         m.weight.data.normal_(0, 0.01)
         if m.bias is not None:
             m.bias.data.zero_()
+
+def TinyPoolNetResnet18(**kwargs):
+    x = PoolNet('resnet', *extra_layer('resnet', tinyresnet18_locate()))
+    x.name = "TinyPoolNetResNet18"
+    return x
 
 def PoolNetResNet50(**kwargs):
     x = PoolNet('resnet', *extra_layer('resnet', resnet50_locate()))

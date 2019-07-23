@@ -6,7 +6,7 @@ from matplotlib import colors
 from matplotlib import pyplot as plt
 from yapwrap.utils import HistPlot, GradCAM
 from yapwrap.modules import ImplicitComplement, ImplicitAttention
-from .poolnet import PoolNetResNet50, TinyPoolNetResnet18
+from .poolnet import PoolNetResNet50
 import numpy as np
 import math
 
@@ -118,9 +118,9 @@ class Bottleneck(nn.Module):
         out += self.shortcut(x)
         return out
 
-class ImpAttn(nn.Module):
+class DeepLabImClass(nn.Module):
     def __init__(self, block, num_blocks, pretrained_attn_path=None, num_classes=10, tiny=False, optimizer_config=None, pretrained=True):
-        super(ImpAttn, self).__init__()
+        super(DeepLabImClass, self).__init__()
         self.name = self.__class__.__name__
         self.in_planes = 64
 
@@ -138,8 +138,6 @@ class ImpAttn(nn.Module):
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2, dilation=1)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2, dilation=1)
         self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=1, dilation=2)
-        self.impattn = ImplicitAttention(1,True)
-
         self.aspp = ASPPBlock(512*block.expansion,256,dilations)
         self.classify = nn.Sequential(
             nn.ReLU(),
@@ -156,6 +154,7 @@ class ImpAttn(nn.Module):
 
         self.upsample = lambda x, s: nn.functional.interpolate(x, s, mode='bilinear', align_corners=True)
         self.num_classes = num_classes
+        self.impattn = ImplicitAttention(1,True)
 
         if pretrained:
             self._load_pretrained_model()
@@ -167,14 +166,6 @@ class ImpAttn(nn.Module):
                 elif isinstance(m, nn.BatchNorm2d):
                     m.weight.data.fill_(1)
                     m.bias.data.zero_()
-
-        self.attn = None
-        if pretrained_attn_path is not None:
-            self.attn = TinyPoolNetResnet18() if self.tiny else PoolNetResNet50()
-            state = torch.load(pretrained_attn_path)
-            self.attn.load_state_dict(state['model_state_dict'])
-            for param in self.attn.parameters():
-                param.requires_grad = False
 
         self.initialize_optimization_parameters(optimizer_config)
 
@@ -188,7 +179,6 @@ class ImpAttn(nn.Module):
 
     def pixelwise_classification(self, x):
         s = (x.size(2), x.size(3))
-        attn = self.attn(x)
         out = self.bn1(self.conv1(x))
         _s = (out.size(2), out.size(3))
         low_level = out
@@ -200,58 +190,29 @@ class ImpAttn(nn.Module):
         out = self.upsample(out, _s)
         out = torch.cat((out, low_level), dim=1)
         px_log = self.classify(out)
-        _impattn = self.impattn(px_log)
+        attn = self.impattn(px_log)
         attn = self.upsample(attn, _s)
-        out = px_log*_impattn
-        pred = out.sum((-2,-1))/_impattn.sum((-2,-1))
-        return out, attn, _impattn, pred
+        out = px_log*attn
+        pred = out.sum((-2,-1))/attn.sum((-2,-1))
+        return out, attn, pred
 
     def forward(self, x):
         return self.pixelwise_classification(x)
 
     def visualize(self, *input):
         x, target = input
-        out, attn, impattn, pred = self.pixelwise_classification(x)
+        out, attn, pred = self.pixelwise_classification(x)
         s = (x.size(2), x.size(3))
-        out, attn, impattn = self.upsample(out,s), self.upsample(attn,s), self.upsample(impattn,s)
+        out, attn = self.upsample(out,s), self.upsample(attn,s)
         smax_attn = torch.softmax(out,1).max(1,keepdim=True)[0]
         segviz = self.overlay_segmentation(x, out)
         x -= x.min()
         x /= x.max()
         viz_dict = {'Input':x,
                     'Segmentation':segviz,
-                    'ImplicitAttn':impattn,
                     'Attention':attn,
                     'SoftMax Attention':smax_attn,
         }
-
-        mhp = HistPlot(title='Model Logit Response',
-                                   xlabel='Logit',
-                                   ylabel='Frequency',
-                                   legend=True,
-                                   legend_pos=1,
-                                   grid=True)
-
-        mmhp = HistPlot(title='Model Max Logit Response',
-                                   xlabel='Logit',
-                                   ylabel='Frequency',
-                                   legend=True,
-                                   legend_pos=1,
-                                   grid=True)
-
-        response = out.sum((-2,-1))/attn.sum((-2,-1))
-        # viz_dict.update({'PxLvlLogits':out, 'PxLvltmax':torch.softmax(out,1)})
-        # viz_dict.update({'ImLvlLogits':response, 'ImLvlSoftmax':torch.softmax(response,1)})
-
-        _out = response.detach().cpu().numpy()
-        mout = _out.max(1)
-        aout = _out.argmax(1)
-        for n in range(out.size(1)):
-            _x = _out[:,n]
-            mhp.add_plot(_x, label=n)
-        mmhp.add_plot(mout)
-        mhp.close()
-        mmhp.close()
 
         return viz_dict
 
@@ -323,48 +284,48 @@ class ImpAttn(nn.Module):
         self.load_state_dict(state_dict)
 
 
-def ImpAttn18(**kwargs):
-    x = ImpAttn(BasicBlock, [2,2,2,2], **kwargs)
+def DeepLabImClass18(**kwargs):
+    x = DeepLabImClass(BasicBlock, [2,2,2,2], **kwargs)
     x.name = "{}18".format(x.name)
     return x
 
-def ImpAttn34(**kwargs):
-    x = ImpAttn(BasicBlock, [3,4,6,3], **kwargs)
+def DeepLabImClass34(**kwargs):
+    x = DeepLabImClass(BasicBlock, [3,4,6,3], **kwargs)
     x.name = "{}34".format(x.name)
     return x
-def ImpAttn50(**kwargs):
-    x = ImpAttn(Bottleneck, [3,4,6,3], **kwargs)
+def DeepLabImClass50(**kwargs):
+    x = DeepLabImClass(Bottleneck, [3,4,6,3], **kwargs)
     x.name = "{}50".format(x.name)
     return x
-def ImpAttn101(**kwargs):
-    x = ImpAttn(Bottleneck, [3,4,23,3], **kwargs)
+def DeepLabImClass101(**kwargs):
+    x = DeepLabImClass(Bottleneck, [3,4,23,3], **kwargs)
     x.name = "{}101".format(x.name)
     return x
-def ImpAttn152(**kwargs):
-    x = ImpAttn(Bottleneck, [3,8,36,3], **kwargs)
+def DeepLabImClass152(**kwargs):
+    x = DeepLabImClass(Bottleneck, [3,8,36,3], **kwargs)
     x.name = "{}152".format(x.name)
     return x
 
-def TinyImpAttn18(**kwargs):
-    x = ImpAttn(BasicBlock, [2,2,2,2], tiny=True, **kwargs)
+def TinyDeepLabImClass18(**kwargs):
+    x = DeepLabImClass(BasicBlock, [2,2,2,2], tiny=True, **kwargs)
     x.name = "Tiny{}18".format(x.name)
     return x
 
-def TinyImpAttn34(**kwargs):
+def TinyDeepLabImClass34(**kwargs):
 
-    x = ImpAttn(BasicBlock, [3,4,6,3], tiny=True, **kwargs)
+    x = DeepLabImClass(BasicBlock, [3,4,6,3], tiny=True, **kwargs)
     x.name = "Tiny{}34".format(x.name)
     return x
-def TinyImpAttn50(**kwargs):
-    x = ImpAttn(Bottleneck, [3,4,6,3], tiny=True, **kwargs)
+def TinyDeepLabImClass50(**kwargs):
+    x = DeepLabImClass(Bottleneck, [3,4,6,3], tiny=True, **kwargs)
     x.name = "Tiny{}50".format(x.name)
     return x
-def TinyImpAttn101(**kwargs):
-    x = ImpAttn(Bottleneck, [3,4,23,3], tiny=True, **kwargs)
+def TinyDeepLabImClass101(**kwargs):
+    x = DeepLabImClass(Bottleneck, [3,4,23,3], tiny=True, **kwargs)
     x.name = "Tiny{}101".format(x.name)
     return x
-def TinyImpAttn152(**kwargs):
-    x = ImpAttn(Bottleneck, [3,8,36,3], tiny=True,**kwargs)
+def TinyDeepLabImClass152(**kwargs):
+    x = DeepLabImClass(Bottleneck, [3,8,36,3], tiny=True,**kwargs)
     x.name = "Tiny{}152".format(x.name)
     return x
 

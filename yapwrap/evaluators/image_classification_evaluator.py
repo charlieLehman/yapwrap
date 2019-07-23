@@ -34,8 +34,8 @@ class RunningAccuracy(Metric):
         if output.size(1) > 1:
             prediction = output.argmax(1)
         else:
-            prediction = (output >= 0.5).int()
-        self.correct += prediction.eq(target.int()).sum().item()
+            prediction = (output >= 0.5).long()
+        self.correct += prediction.eq(target.long()).sum().item()
         acc = self.correct/self.num_examples
         return {'Accuracy':acc}
 
@@ -113,7 +113,7 @@ class RunningExpectedCalibrationError(Metric):
 
     def forward(self, output, target):
         confidences, predictions = torch.max(F.softmax(output, dim=1), 1)
-        accuracies = predictions.eq(target)
+        accuracies = predictions.eq(target.long())
         self.num_samples += output.size(0)
 
         for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):

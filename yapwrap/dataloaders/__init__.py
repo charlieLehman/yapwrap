@@ -10,4 +10,3 @@ from .duts import *
 from .msrab import *
 from .pascal_voc import *
 from .imagefolder import *
-from .lid_challenge import *

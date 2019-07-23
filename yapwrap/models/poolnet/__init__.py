@@ -1,1 +1,1 @@
-from .poolnet import PoolNetResNet50
+from .poolnet import PoolNetResNet50, TinyPoolNetResnet18

@@ -22,7 +22,9 @@ class ImageFolder(Dataloader):
         self.train_batch_size = batch_sizes['train']
         if transforms['train'] is None:
             self.train_transform = tvtfs.Compose([
-                tvtfs.RandomResizedCrop(self.size),
+                tvtfs.Resize(size),
+                tvtfs.CenterCrop(size),
+                # tvtfs.RandomResizedCrop(self.size),
                 tvtfs.RandomHorizontalFlip(),
                 tvtfs.ToTensor(),
                 tvtfs.Normalize((0.485, 0.456, 0.4406), (0.229, 0.224, 0.225)),

@@ -29,7 +29,7 @@ class ImageSegmentation(ImageClassification):
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)
-        loss = self.criterion(output, target)
+        loss = self.criterion(output, target).sum(dim=(1,2,3)).mean(dim=0)
         eval_update = {'metrics':(output, target),
                         'loss':loss.item(),
                         'criterion':str(self.criterion)}

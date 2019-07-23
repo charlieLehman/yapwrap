@@ -15,15 +15,15 @@ config = {
         "class":MSRAB,
         "params":{
             "root":'/data/datasets/MSRA-B/',
-            "size":224,
+            "size":32,
             "batch_sizes":{
-            "train":20,
-            "validation":20,
-            "test":10,}
+            "train":128,
+            "validation":100,
+            "test":100,}
         }
     },
     "model":{
-        "class":PoolNetResNet50,
+        "class":TinyPoolNetResnet18,
         "params":{}
     },
     "lr_scheduler":{
@@ -32,7 +32,7 @@ config = {
     },
     "criterion":{
         "class":nn.BCELoss,
-        "params":{"reduction":"sum"}
+        "params":{"reduction":"none"}
     },
     "evaluator":{
         "class":ImageSaliencyEvaluator,
@@ -45,7 +45,7 @@ config = {
     },
     "cuda":True,
     "visualize_every_n_step":None,
-    "max_visualize_batch":9,
+    "max_visualize_batch":100,
     "visualize_every_epoch":True,
     }
 exp = ImageSegmentation(config)

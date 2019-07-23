@@ -24,7 +24,7 @@ class FocalLoss(nn.Module):
         input = input[mask,:]
 
         logpt = F.log_softmax(input, 1)
-        logpt = logpt.gather(1,target)
+        logpt = logpt.gather(1,target.long())
         logpt = logpt.view(-1)
         pt = Variable(logpt.data.exp())
 

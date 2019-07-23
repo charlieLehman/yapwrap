@@ -91,9 +91,18 @@ class RunningFBetaScore(Metric):
         self.fp += fp
         self.tn += tn
         self.fn += fn
-        precision = self.tp/(self.tp+self.fp)
-        recall = self.tp/(self.tp+self.fn)
-        f_beta = (1+self.beta2)*precision*recall/(self.beta2*precision+recall)
+        if (self.tp+self.fp) != 0:
+            precision = self.tp/(self.tp+self.fp)
+        else:
+            precision = 0
+        if (self.tp+self.fn) != 0:
+            recall = self.tp/(self.tp+self.fn)
+        else:
+            recall = 0
+        if recall+precision != 0:
+            f_beta = (1+self.beta2)*precision*recall/(self.beta2*precision+recall)
+        else:
+            f_beta = 0
         return {'FBeta':f_beta}
 
     def reset(self):

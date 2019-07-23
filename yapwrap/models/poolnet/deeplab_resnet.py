@@ -92,10 +92,16 @@ class Bottleneck(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, block, layers):
+    def __init__(self, block, layers, tiny=False):
         self.inplanes = 64
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+
+        if tiny:
+            self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1,
+                               bias=False)
+        else:
+
+            self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64,affine = affine_par)
         for i in self.bn1.parameters():
@@ -154,9 +160,9 @@ class ResNet(nn.Module):
 
 
 class ResNet_locate(nn.Module):
-    def __init__(self, block, layers):
+    def __init__(self, block, layers, tiny=False):
         super(ResNet_locate,self).__init__()
-        self.resnet = ResNet(block, layers)
+        self.resnet = ResNet(block, layers, tiny)
         self.in_planes = 512
         self.out_planes = [512, 256, 256, 128]
 
@@ -203,3 +209,7 @@ def resnet50_locate():
     # for param in model.parameters():
     #     param.requires_grad = False
     return model
+def tinyresnet18_locate():
+    x = ResNet_locate(Bottleneck, [2,2,2,2], tiny=True)
+    return x
+
