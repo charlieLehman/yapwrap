@@ -15,7 +15,6 @@ class ImplicitComplementFunction(torch.autograd.Function):
         grad_input = -_exp.div(_den.pow(2)).mul(grad_output)
         return grad_input, None
 
-
 class ImplicitComplement(torch.nn.Module):
     def __init__(self, dim, keepdim=True):
         super(ImplicitComplement, self).__init__()
@@ -44,7 +43,6 @@ class ImplicitAttentionFunction(torch.autograd.Function):
         grad_input = _exp.div(_den.pow(2)).mul(grad_output)
         return grad_input, None, None
 
-
 class ImplicitAttention(torch.nn.Module):
     def __init__(self, dim, keepdim=True):
         super(ImplicitAttention, self).__init__()
@@ -56,7 +54,6 @@ class ImplicitAttention(torch.nn.Module):
 
     def extra_repr(self):
         return 'dim={}, keepdim={}'.format(self.dim, self.keepdim)
-
 
 class ImplicitAttentionLoss(torch.nn.Module):
     def __init__(self):
