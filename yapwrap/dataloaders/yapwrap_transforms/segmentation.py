@@ -86,16 +86,17 @@ class RandomGaussianBlur(object):
 
 
 class RandomScaleCrop(object):
-    def __init__(self, base_size, crop_size, fill=0):
+    def __init__(self, base_size, crop_size, fill=0, scale=[0.5,2.0]):
         self.base_size = base_size
         self.crop_size = crop_size
         self.fill = fill
+        self.scale = scale
 
     def __call__(self, sample):
         img = sample['image']
         mask = sample['label']
         # random scale (short edge)
-        short_size = random.randint(int(self.base_size * 0.5), int(self.base_size * 2.0))
+        short_size = random.randint(int(self.base_size * self.scale[0]), int(self.base_size * self.scale[1]))
         w, h = img.size
         if h > w:
             ow = short_size

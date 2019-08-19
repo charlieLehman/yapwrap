@@ -14,20 +14,20 @@ class MSRAB(Dataloader):
         self.train_batch_size = batch_sizes['train']
         self.test_batch_size = batch_sizes['test']
         self.train_transform = transforms.Compose([
-            # tfs.RandomScaleCrop(base_size=size*2, crop_size=size),
-            tfs.FixScaleCrop(crop_size=size),
-            tfs.RandomHorizontalFlip(),
+            tfs.RandomScaleCrop(base_size=size, crop_size=size, scale=[0.8, 1.2]),
+            # tfs.FixScaleCrop(crop_size=size),
             tfs.RandomRotate(15),
+            tfs.RandomHorizontalFlip(),
             tfs.RandomGaussianBlur(),
-            tfs.Normalize(mean=(0.4487, 0.4314, 0.3725),
-                           std=(0.2287, 0.2173, 0.2193)),
+            tfs.Normalize(mean=(0.485, 0.456, 0.4406),
+                          std=(0.229, 0.224, 0.225)),
             tfs.ToTensor()
         ])
 
         self.test_transform= transforms.Compose([
             tfs.FixScaleCrop(crop_size=size),
-            tfs.Normalize(mean=(0.4487, 0.4314, 0.3725),
-                           std=(0.2287, 0.2173, 0.2193)),
+            tfs.Normalize(mean=(0.485, 0.456, 0.4406),
+                          std=(0.229, 0.224, 0.225)),
             tfs.ToTensor()
         ])
 

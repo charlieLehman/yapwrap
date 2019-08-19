@@ -49,7 +49,10 @@ class Saver(object):
             if isinstance(v, dict):
                 config[k] = self._recursive_naming(v)
             if not isinstance(v, (str, int, float, bool, dict, type(None))):
-                config[k] = v.__name__
+                if isinstance(v, (list, tuple)):
+                    config[k] = str(v)
+                else:
+                    config[k] = v.__name__
         return config
 
     def save_config(self, config):

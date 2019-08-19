@@ -14,7 +14,7 @@ class_list = ['aeroplane', 'bicycle', 'bird', 'boat','bottle',
               'dog', 'horse','motorbike', 'person', 'pottedplant',
               'sheep', 'sofa', 'train', 'tvmonitor', 'bg']
 
-__all__ = ['VOCSegmentation']
+# __all__ = ['VOCSegmentation']
 
 class VOCSegmentation(Dataloader):
     def __init__(self, root, size=(513,513), batch_sizes={'train':1,'test':4}, transforms={'train':None, 'test':None}):
@@ -75,7 +75,7 @@ class VOCSegmentationDataset(data.Dataset):
     PascalVoc dataset
     """
     NUM_CLASSES = 21
-    def __init__(self, root, split, size=(513,513), batch_sizes={'train':18,'test':10}, transforms={'train':None, 'test':None}):
+    def __init__(self, root, split, transform, size=(513,513), batch_sizes={'train':18,'test':10}):
         """
         :param root: path to VOC dataset directory
         :param split: train/val
@@ -87,6 +87,7 @@ class VOCSegmentationDataset(data.Dataset):
         self._cat_dir = os.path.join(self._base_dir, 'SegmentationClass')
         self.split = [split]
         self.args = {'base_size':513, 'crop_size': 513}
+        self.transform = transform
 
         _splits_dir = os.path.join(self._base_dir, 'ImageSets', 'Segmentation')
 
@@ -128,15 +129,9 @@ class VOCSegmentationDataset(data.Dataset):
             _img, _target = _sample
 
         sample = {'image': _img, 'label': _target}
+        sample = self.transform(sample)
 
-        for split in self.split:
-            if split == "train":
-                return self.transform_tr(sample)
-            elif split == "val":
-                return self.transform_val(sample)
-            else:
-                return self.transform_test(sample), _imname
-
+        return sample['image'], sample['label'].long()
 
     def _make_img_gt_point_pair(self, index):
         _img = Image.open(self.images[index]).convert('RGB')
@@ -146,33 +141,6 @@ class VOCSegmentationDataset(data.Dataset):
         else:
             _target = Image.open(self.categories[index])
         return _img, _target
-
-    def transform_tr(self, sample):
-        composed_transforms = transforms.Compose([
-            RandomHorizontalFlip(),
-            RandomScaleCrop(base_size=self.args['base_size'], crop_size=self.args['crop_size']),
-            RandomGaussianBlur(),
-            Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-            ToTensor()])
-
-        return composed_transforms(sample)
-
-    def transform_val(self, sample):
-
-        composed_transforms = transforms.Compose([
-            FixScaleCrop(crop_size=self.args['crop_size']),
-            Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-            ToTensor()])
-
-        return composed_transforms(sample)
-
-    def transform_test(self, sample):
-
-        composed_transforms = transforms.Compose([
-            Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-            ToTensor()])
-
-        return composed_transforms(sample)
 
     def __str__(self):
         return 'VOC2012(split=' + str(self.split) + ')'

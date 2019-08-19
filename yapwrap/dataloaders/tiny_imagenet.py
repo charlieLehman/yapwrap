@@ -30,7 +30,7 @@ class TinyImageNet(Dataloader):
             self.train_transform = tvtfs.Compose([
                 tvtfs.Resize(self.size),
                 tvtfs.RandomHorizontalFlip(),
-                tvtfs.RandomCrop(self.size, padding=8),
+                tvtfs.RandomCrop(self.size, padding=4),
                 tvtfs.ToTensor(),
                 tvtfs.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
             ])

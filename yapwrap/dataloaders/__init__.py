@@ -9,4 +9,5 @@ from .ood_dataloaders import *
 from .duts import *
 from .msrab import *
 from .pascal_voc import *
+from .sbd import *
 from .imagefolder import *

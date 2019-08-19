@@ -53,7 +53,6 @@ setup(
         "pandas",
         "tqdm",
         "requests",
-        "tensorboardX",
         "tensorboard",
         "googledrivedownloader",
         "tensorflow"

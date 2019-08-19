@@ -13,7 +13,7 @@ from yapwrap.dataloaders import Dataloader
 from torch.utils.data import DataLoader
 import torch
 from yapwrap.dataloaders import *
-import yapwrap.dataloaders.transforms as tfs
+import yapwrap.dataloaders.yapwrap_transforms as tfs
 
 class_list = ['aeroplane', 'bicycle', 'bird', 'boat','bottle',
               'bus', 'car', 'cat', 'chair','cow', 'diningtable',
@@ -77,17 +77,18 @@ class SBDSegmentation(Dataloader):
 class SBDSegmentationDataset(data.Dataset):
     NUM_CLASSES = 21
 
-    def __init__(self, root, split, size=(513,513), batch_sizes={'train':18,'test':10}, transforms={'train':None, 'test':None}):
+    def __init__(self, root, transform, split, size=(513,513), batch_sizes={'train':18,'test':10}, transforms={'train':None, 'test':None}):
         """
         :param base_dir: path to VOC dataset directory
         :param split: train/val
         :param transform: transform to apply
         """
         super().__init__()
-        self._base_dir = base_dir
+        self._base_dir = root
         self._dataset_dir = os.path.join(self._base_dir, 'dataset')
         self._image_dir = os.path.join(self._dataset_dir, 'img')
         self._cat_dir = os.path.join(self._dataset_dir, 'cls')
+        self.transform = transform
 
 
         if isinstance(split, str):
@@ -96,7 +97,6 @@ class SBDSegmentationDataset(data.Dataset):
             split.sort()
             self.split = split
 
-        self.args = args
 
         # Get list of all images from the split and check that the files exist
         self.im_ids = []
@@ -124,8 +124,8 @@ class SBDSegmentationDataset(data.Dataset):
     def __getitem__(self, index):
         _img, _target = self._make_img_gt_point_pair(index)
         sample = {'image': _img, 'label': _target}
-
-        return self.transform(sample)
+        sample = self.transform(sample)
+        return sample['image'], sample['label'].long()
 
     def __len__(self):
         return len(self.images)
@@ -135,17 +135,6 @@ class SBDSegmentationDataset(data.Dataset):
         _target = Image.fromarray(scipy.io.loadmat(self.categories[index])["GTcls"][0]['Segmentation'][0])
 
         return _img, _target
-
-    def transform(self, sample):
-        composed_transforms = transforms.Compose([
-            tr.RandomHorizontalFlip(),
-            tr.RandomScaleCrop(base_size=self.args.base_size, crop_size=self.args.crop_size),
-            tr.RandomGaussianBlur(),
-            tr.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
-            tr.ToTensor()])
-
-        return composed_transforms(sample)
-
 
     def __str__(self):
         return 'SBDSegmentation(split=' + str(self.split) + ')'

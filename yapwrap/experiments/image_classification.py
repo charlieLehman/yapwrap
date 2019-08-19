@@ -67,20 +67,21 @@ class ImageClassification(Experiment):
             _input = input[:self.max_visualize_batch] if self.max_visualize_batch is not None else input
             self.logger.summarize_images(viz(_input), self.dataloader.name, self.evaluator.step)
 
-    def train(self, num_epochs, validate=True):
+    def train(self, num_epochs, validate=True, skip_train=False):
         train_iter = self.dataloader.train_iter()
         if validate:
             val_iter = self.dataloader.val_iter()
         for n in range(num_epochs):
-            self.evaluator.reset()
-            self.model.train()
-            if self.lr_scheduler is not None:
-                self.lr_scheduler.step(n)
-            self._epoch(train_iter)
-            if self.lr_scheduler is not None:
-                for i, lr in enumerate(self.lr_scheduler.get_lr()):
-                    self.evaluator.update(**{'values':{'lr_{}'.format(i):lr}})
-            self.saver.epoch += 1
+            if not skip_train:
+                self.evaluator.reset()
+                self.model.train()
+                if self.lr_scheduler is not None:
+                    self.lr_scheduler.step(n)
+                self._epoch(train_iter)
+                if self.lr_scheduler is not None:
+                    for i, lr in enumerate(self.lr_scheduler.get_lr()):
+                        self.evaluator.update(**{'values':{'lr_{}'.format(i):lr}})
+                self.saver.epoch += 1
 
             if validate:
                 self.model.eval()

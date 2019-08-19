@@ -21,10 +21,9 @@ class CIFAR10(Dataloader):
         if transforms['train'] is None:
             self.train_transform = tvtfs.Compose([
                 tvtfs.Resize(self.size),
-                # ImageOps.equalize,
+                tvtfs.RandomCrop(size, padding=4),
                 tvtfs.RandomHorizontalFlip(),
                 tvtfs.ToTensor(),
-                # tvtfs.Normalize([0.5163, 0.5157, 0.5175], [0.0905, 0.0902, 0.0910]),
                 tvtfs.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
             ])
         else:
@@ -34,9 +33,7 @@ class CIFAR10(Dataloader):
         if transforms['test'] is None:
             self.test_transform = tvtfs.Compose([
                 tvtfs.Resize(self.size),
-                # ImageOps.equalize,
                 tvtfs.ToTensor(),
-                # tvtfs.Normalize([0.5163, 0.5157, 0.5175], [0.0905, 0.0902, 0.0910]),
                 tvtfs.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
             ])
         else:

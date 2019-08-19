@@ -16,7 +16,7 @@
 import os
 import torch
 from torchvision.utils import make_grid
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
 class Logger(object):
@@ -30,8 +30,10 @@ class Logger(object):
             summary_name = os.path.join(k, metric_set)
             if np.isscalar(v):
                 self.writer.add_scalar(summary_name, v, step)
-            if isinstance(v, dict):
-                self.process_state(v, metric_set, step)
+            if isinstance(v, tuple):
+                wr_func = getattr(self.writer, v[0])
+                kwargs = v[1]
+                wr_func(**kwargs, tag=summary_name, global_step=step)
 
     def summarize_scalars(self, evaluator):
         state = evaluator.state[evaluator.metric_set]

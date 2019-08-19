@@ -114,7 +114,7 @@ class RunningExpectedCalibrationError(Metric):
     def forward(self, output, target):
         confidences, predictions = torch.max(F.softmax(output, dim=1), 1)
         accuracies = predictions.eq(target.long())
-        self.num_samples += output.size(0)
+        self.num_samples += output.numel()
 
         for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
             in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())

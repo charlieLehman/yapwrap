@@ -153,6 +153,19 @@ class ResNet(nn.Module):
         return {"optimizer":{"class":_class,
                                 "params":_params}}
 
+    def _load_pretrained_model(self):
+        print("Loading ResNet18")
+        pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet18-5c106cde.pth')
+        # print("Loading ResNet50")
+        # pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet50-19c8e357.pth')
+        model_dict = {}
+        state_dict = self.state_dict()
+        for k, v in pretrain_dict.items():
+            if k in state_dict:
+                if not(k == 'conv1.weight' and self.tiny):
+                    model_dict[k] = v
+        state_dict.update(model_dict)
+        self.load_state_dict(state_dict)
 
 def ResNet18(**kwargs):
     x = ResNet(BasicBlock, [2,2,2,2], **kwargs)
