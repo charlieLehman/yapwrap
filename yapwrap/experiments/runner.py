@@ -38,5 +38,5 @@ def Runner(experiment_name, experiment_number, **kwargs):
             model = nn.DataParallel(model)
             model.cuda()
             model.name = model.module.name
-        return model
+        return model, config
 

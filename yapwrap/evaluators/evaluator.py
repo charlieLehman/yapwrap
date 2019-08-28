@@ -57,7 +57,7 @@ class Evaluator(object):
 
     def tbar_desc(self, epoch):
         desc = "Epoch {} - ".format(epoch)
-        if self.criterion is not None:
+        if self.criterion is not None and self.criterion is not "None":
             desc += "{} - Loss: {:.3f}".format(self.metric_set, self.state[self.metric_set][self.criterion])
         else:
             k,v = list(self.state[self.metric_set].items())[0]

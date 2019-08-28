@@ -131,7 +131,7 @@ class VOCSegmentationDataset(data.Dataset):
         sample = {'image': _img, 'label': _target}
         sample = self.transform(sample)
 
-        return sample['image'], sample['label'].long()
+        return sample['image'], sample['label']
 
     def _make_img_gt_point_pair(self, index):
         _img = Image.open(self.images[index]).convert('RGB')

@@ -125,7 +125,7 @@ class SBDSegmentationDataset(data.Dataset):
         _img, _target = self._make_img_gt_point_pair(index)
         sample = {'image': _img, 'label': _target}
         sample = self.transform(sample)
-        return sample['image'], sample['label'].long()
+        return sample['image'], sample['label']
 
     def __len__(self):
         return len(self.images)

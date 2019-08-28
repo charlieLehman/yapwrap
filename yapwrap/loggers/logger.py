@@ -27,13 +27,14 @@ class Logger(object):
 
     def process_state(self, state, metric_set, step):
         for k, v in state.items():
-            summary_name = os.path.join(k, metric_set)
-            if np.isscalar(v):
-                self.writer.add_scalar(summary_name, v, step)
-            if isinstance(v, tuple):
-                wr_func = getattr(self.writer, v[0])
-                kwargs = v[1]
-                wr_func(**kwargs, tag=summary_name, global_step=step)
+            if isinstance(k, str):
+                summary_name = os.path.join(k, metric_set)
+                if np.isscalar(v):
+                    self.writer.add_scalar(summary_name, v, step)
+                if isinstance(v, tuple):
+                    wr_func = getattr(self.writer, v[0])
+                    kwargs = v[1]
+                    wr_func(**kwargs, tag=summary_name, global_step=step)
 
     def summarize_scalars(self, evaluator):
         state = evaluator.state[evaluator.metric_set]
