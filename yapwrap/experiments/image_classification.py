@@ -27,8 +27,8 @@ from PIL import Image
 class ImageClassification(Experiment):
     """Image Classification Design Pattern
     """
-    def __init__(self, config=None, experiment_name=None, experiment_number=None, cuda=False):
-        super(ImageClassification, self).__init__(config, experiment_name, experiment_number, cuda)
+    def __init__(self, config=None, cuda=False):
+        super(ImageClassification, self).__init__(config, cuda)
 
     def _step(self, input, target, is_training=False):
         output = self.model(input)

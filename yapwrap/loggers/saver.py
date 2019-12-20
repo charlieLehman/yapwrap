@@ -21,6 +21,7 @@ import os
 import re
 import copy
 import inspect
+from yapwrap.utils import recursive_naming
 
 class Saver(object):
     def __init__(self, experiment_name, experiment_dir):
@@ -44,20 +45,9 @@ class Saver(object):
                  'optimizer_state_dict':self.optimizer_state_dict}
         torch.save(state, self.exp_path)
 
-    def _recursive_naming(self, config):
-        for k,v in config.items():
-            if isinstance(v, dict):
-                config[k] = self._recursive_naming(v)
-            if not isinstance(v, (str, int, float, bool, dict, type(None))):
-                if isinstance(v, (list, tuple)):
-                    config[k] = str(v)
-                else:
-                    config[k] = v.__name__
-        return config
-
     def save_config(self, config):
         _config = copy.deepcopy(config)
-        _config = self._recursive_naming(_config)
+        _config = recursive_naming(_config)
         with open(self.config_path, 'w') as f:
             json.dump(_config, f, sort_keys=True, indent=4, default=obj_dict)
 

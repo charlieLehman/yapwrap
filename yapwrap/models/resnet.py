@@ -153,11 +153,9 @@ class ResNet(nn.Module):
         return {"optimizer":{"class":_class,
                                 "params":_params}}
 
-    def _load_pretrained_model(self):
-        print("Loading ResNet18")
-        pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet18-5c106cde.pth')
-        # print("Loading ResNet50")
-        # pretrain_dict = model_zoo.load_url('https://download.pytorch.org/models/resnet50-19c8e357.pth')
+    def _load_pretrained_model(self, url):
+        print("Loading ResNet")
+        pretrain_dict = model_zoo.load_url(url)
         model_dict = {}
         state_dict = self.state_dict()
         for k, v in pretrain_dict.items():

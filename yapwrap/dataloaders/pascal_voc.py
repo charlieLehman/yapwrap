@@ -75,7 +75,7 @@ class VOCSegmentationDataset(data.Dataset):
     PascalVoc dataset
     """
     NUM_CLASSES = 21
-    def __init__(self, root, split, transform, size=(513,513), batch_sizes={'train':18,'test':10}):
+    def __init__(self, root, split, transform, size=(513,513), batch_sizes={'train':18,'test':10}, return_image_name=False):
         """
         :param root: path to VOC dataset directory
         :param split: train/val
@@ -88,6 +88,7 @@ class VOCSegmentationDataset(data.Dataset):
         self.split = [split]
         self.args = {'base_size':513, 'crop_size': 513}
         self.transform = transform
+        self.retimname = return_image_name
 
         _splits_dir = os.path.join(self._base_dir, 'ImageSets', 'Segmentation')
 
@@ -121,9 +122,9 @@ class VOCSegmentationDataset(data.Dataset):
 
     def __getitem__(self, index):
         _sample = self._make_img_gt_point_pair(index)
-        if self.split[0] == 'test':
+        if self.retimname:
             _img, _target, _imname = _sample
-            _imname = _imname.split('/')[-1].split('.')[0]
+            # _imname = _imname.split('/')[-1].split('.')[0]
 
         else:
             _img, _target = _sample
@@ -131,16 +132,22 @@ class VOCSegmentationDataset(data.Dataset):
         sample = {'image': _img, 'label': _target}
         sample = self.transform(sample)
 
-        return sample['image'], sample['label']
+        if self.retimname:
+            return sample['image'], sample['label'], _imname
+        else:
+            return sample['image'], sample['label']
 
     def _make_img_gt_point_pair(self, index):
         _img = Image.open(self.images[index]).convert('RGB')
-        if self.split[0] == 'test':
+        if self.split[0]=='test':
             _target = Image.new('L', _img.size, color=(0))
-            return _img, _target, self.images[index]
         else:
             _target = Image.open(self.categories[index])
-        return _img, _target
+
+        if self.retimname:
+            return _img, _target, self.images[index]
+        else:
+            return _img, _target
 
     def __str__(self):
         return 'VOC2012(split=' + str(self.split) + ')'

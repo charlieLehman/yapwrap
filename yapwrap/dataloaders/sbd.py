@@ -77,7 +77,7 @@ class SBDSegmentation(Dataloader):
 class SBDSegmentationDataset(data.Dataset):
     NUM_CLASSES = 21
 
-    def __init__(self, root, transform, split, size=(513,513), batch_sizes={'train':18,'test':10}, transforms={'train':None, 'test':None}):
+    def __init__(self, root, transform, split, size=(513,513), batch_sizes={'train':18,'test':10}, transforms={'train':None, 'test':None}, return_image_name=False):
         """
         :param base_dir: path to VOC dataset directory
         :param split: train/val
@@ -85,35 +85,45 @@ class SBDSegmentationDataset(data.Dataset):
         """
         super().__init__()
         self._base_dir = root
-        self._dataset_dir = os.path.join(self._base_dir, 'dataset')
+        self._dataset_dir = os.path.join(self._base_dir, 'benchmark_RELEASE/dataset')
         self._image_dir = os.path.join(self._dataset_dir, 'img')
         self._cat_dir = os.path.join(self._dataset_dir, 'cls')
+        self._voc_dir = os.path.join(self._base_dir, 'VOC2012/ImageSets/Segmentation')
         self.transform = transform
+        self.retimname = return_image_name
 
-
-        if isinstance(split, str):
-            self.split = [split]
-        else:
-            split.sort()
-            self.split = split
+        self.split = split
 
 
         # Get list of all images from the split and check that the files exist
         self.im_ids = []
         self.images = []
         self.categories = []
-        for splt in self.split:
-            with open(os.path.join(self._dataset_dir, splt + '.txt'), "r") as f:
-                lines = f.read().splitlines()
+        lines = []
+        voc_lines = []
+        if split == 'aug':
+            for splt in ['train', 'val']:
+                with open(os.path.join(self._dataset_dir, splt + '.txt'), "r") as f:
+                    lines.extend(f.read().splitlines())
+                with open(os.path.join(self._voc_dir, splt + '.txt'), "r") as f:
+                    voc_lines.extend(f.read().splitlines())
+            intersect = set(lines.copy()).intersection(voc_lines)
+            for i in intersect:
+                if i in lines:
+                    lines.remove(i)
+        else:
+            for splt in self.split:
+                with open(os.path.join(self._dataset_dir, splt + '.txt'), "r") as f:
+                    lines.extend(f.read().splitlines())
 
-            for line in lines:
-                _image = os.path.join(self._image_dir, line + ".jpg")
-                _categ= os.path.join(self._cat_dir, line + ".mat")
-                assert os.path.isfile(_image)
-                assert os.path.isfile(_categ)
-                self.im_ids.append(line)
-                self.images.append(_image)
-                self.categories.append(_categ)
+        for line in lines:
+            _image = os.path.join(self._image_dir, line + ".jpg")
+            _categ= os.path.join(self._cat_dir, line + ".mat")
+            assert os.path.isfile(_image)
+            assert os.path.isfile(_categ)
+            self.im_ids.append(line)
+            self.images.append(_image)
+            self.categories.append(_categ)
 
         assert (len(self.images) == len(self.categories))
 
@@ -122,10 +132,20 @@ class SBDSegmentationDataset(data.Dataset):
 
 
     def __getitem__(self, index):
-        _img, _target = self._make_img_gt_point_pair(index)
+        _sample = self._make_img_gt_point_pair(index)
+        if self.retimname:
+            _img, _target, _imname = _sample
+
+        else:
+            _img, _target = _sample
+
         sample = {'image': _img, 'label': _target}
         sample = self.transform(sample)
-        return sample['image'], sample['label']
+
+        if self.retimname:
+            return sample['image'], sample['label'], _imname
+        else:
+            return sample['image'], sample['label']
 
     def __len__(self):
         return len(self.images)
@@ -134,8 +154,12 @@ class SBDSegmentationDataset(data.Dataset):
         _img = Image.open(self.images[index]).convert('RGB')
         _target = Image.fromarray(scipy.io.loadmat(self.categories[index])["GTcls"][0]['Segmentation'][0])
 
-        return _img, _target
+        if self.retimname:
+            return _img, _target, self.images[index]
+        else:
+            return _img, _target
 
     def __str__(self):
         return 'SBDSegmentation(split=' + str(self.split) + ')'
+
 
